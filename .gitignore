@@ -1,0 +1,5 @@
+# Local artwork overrides for demos - never committed. See images/art/local/README.md
+images/art/local/*
+!images/art/local/README.md
+
+.DS_Store

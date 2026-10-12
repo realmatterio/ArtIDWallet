@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Articulator AI - Peer-to-peer Resale (Demo)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="resale.css?v=8">
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.min.js"></script>
+  <script src="artworks.js?v=8"></script>
+  <script src="addrQrOverlay.js?v=8"></script>
+</head>
+<body>
+
+  <header class="rs-topbar">
+    <div class="rs-brand">
+      <div class="rs-brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="3" width="18" height="18" rx="2.5"/><path d="m3 16 5-5 4 4 3-3 6 6"/><circle cx="9" cy="8.5" r="1.5"/>
+        </svg>
+      </div>
+      <div class="rs-brand-text">
+        <strong>Articulator AI</strong>
+        <span>Peer-to-peer resale &middot; Demo</span>
+      </div>
+    </div>
+    <button class="rs-reset" id="rsReset">Reset demo</button>
+  </header>
+
+  <main class="rs-shell">
+
+    <details class="rs-notice">
+      <summary>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/>
+        </svg>
+        <span>Both sides are shown on one screen so the handoff is visible &mdash; what this demo does and does not do</span>
+      </summary>
+      <div class="rs-notice-body">
+        In the real app these are two phones: the seller half lives in the wallet's
+        My&nbsp;Collection, the buyer half is the wallet's existing camera scanner.
+        <strong>Ownership transfer is not the wallet's job</strong> &mdash; the wallet requests
+        it and the art&nbsp;ID&nbsp;registry performs it, so that step is shown as a call out to
+        the registry, not something this code does. The Visa&nbsp;/&nbsp;YedPay leg is simulated
+        (no merchant credentials yet).
+      </div>
+    </details>
+
+    <div class="rs-panes">
+
+      <!-- ===== Alice's inventory: full width, so the code below sits level
+                 with the buyer instead of being pushed off the screen ===== -->
+      <section class="rs-pane rs-pane-wide">
+        <div class="rs-pane-body">
+          <div class="rs-collection-head">
+            <div>
+              <div class="rs-label">Alice's collection</div>
+              <p class="rs-hint">Pick a piece to put up for sale.</p>
+            </div>
+            <span class="rs-addr-chip" id="sellerAddr">&mdash;</span>
+          </div>
+          <div class="rs-collection" id="collection"></div>
+        </div>
+      </section>
+
+      <!-- ================= SELLER: the code ================= -->
+      <section class="rs-pane">
+        <div class="rs-pane-head">
+          <div class="rs-avatar">A</div>
+          <div class="rs-who">
+            <strong>Alice's screen</strong>
+            <span>what she shows the buyer</span>
+          </div>
+          <span class="rs-role">Seller</span>
+        </div>
+        <div class="rs-pane-body" id="sellerListing"></div>
+      </section>
+
+      <!-- ================= BUYER ================= -->
+      <section class="rs-pane">
+        <div class="rs-pane-head">
+          <div class="rs-avatar buyer">B</div>
+          <div class="rs-who">
+            <strong>Bob</strong>
+            <span id="buyerAddr">&mdash;</span>
+          </div>
+          <span class="rs-role buyer">Buyer</span>
+        </div>
+        <div class="rs-pane-body" id="buyerBody"></div>
+      </section>
+
+    </div>
+
+    <!-- ================= REGISTRY ================= -->
+    <section class="rs-ledger">
+      <div class="rs-ledger-head">
+        <div>
+          <div class="rs-label">Art ID Registry</div>
+          <p class="rs-hint" style="margin-top:6px;">
+            Separate system &mdash; this is what actually records who owns what.
+          </p>
+        </div>
+      </div>
+      <div class="rs-table-scroll">
+        <table>
+          <thead>
+            <tr><th>Time</th><th>Piece</th><th>From</th><th>To</th><th>Channel</th><th>Reference</th></tr>
+          </thead>
+          <tbody id="ledgerBody">
+            <tr><td colspan="6" class="rs-ledger-empty">No transfers yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+<script>
+  /* ======================================================================
+     Articulator AI - peer-to-peer artwork resale (demo)
+
+     Flow:
+       1. Alice picks a piece from her collection and sets a price.
+       2. Her wallet renders a code carrying her address, the piece ID and
+          the amount.
+       3. Bob scans it, sees the listing, and picks a payment channel:
+            - on-chain HKDq stablecoin, or
+            - Visa through the YedPay terminal
+       4. On payment, the wallet ASKS the art ID registry to move ownership.
+          The registry is a separate system; the wallet cannot move ownership
+          by itself. That boundary is modelled explicitly below.
+     ====================================================================== */
+
+  const ADDR = {
+    alice: '0x29F780C62F75DCCc7fF6f43f7e319E4da870a3C7',
+    bob:   '0x8a03Cd8Fdb225Fe1A74e94C3b6d193F3ABAE52D5'
+  };
+
+  /* Public-domain paintings (artworks.js, files in images/art/). The same image
+     is the gallery thumbnail and the background behind the address QR, so what
+     the seller sees is literally what ends up inside the code. */
+  const PIECES = [
+    { id: 'ART-041', title: 'The Scream',       artist: 'Edvard Munch, 1893',      key: 'scream'      },
+    { id: 'ART-067', title: 'The Great Wave',   artist: 'Hokusai, c.1831',         key: 'greatWave'   },
+    { id: 'ART-088', title: 'The Starry Night', artist: 'Vincent van Gogh, 1889',  key: 'starryNight' },
+    { id: 'ART-095', title: 'Sunflowers',       artist: 'Vincent van Gogh, 1888',  key: 'sunflowers'  }
+  ].map(p => Object.assign(p, { art: Artworks.background(p.key) }));
+
+  const state = {
+    owner: {},            // pieceId -> 'alice' | 'bob'
+    selected: null,       // piece being listed
+    price: 1500,
+    listing: null,        // the payload Bob scans
+    scanned: null,
+    channel: 'chain',
+    stage: 'idle',        // idle | scanned | paid | transferred
+    lightening: 70,       // addrQR background lightening, 0-100
+    qrPayload: null,      // what the code actually encodes (address only)
+    ledger: []
+  };
+
+  const $ = id => document.getElementById(id);
+  const piece = id => PIECES.find(p => p.id === id);
+  const shorten = a => a.slice(0, 10) + '…' + a.slice(-6);
+  const fmt = n => new Intl.NumberFormat('en-HK', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+  const rndHex = n => '0x' + Array.from({length:n}, () => '0123456789abcdef'[Math.random()*16|0]).join('');
+  const rndAuth = () => Array.from({length:6}, () => '0123456789ABCDEFGHJKLMNPQRSTUVWXYZ'[Math.random()*34|0]).join('');
+
+  const CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>';
+
+  /* ---------------- seller ---------------- */
+
+  function renderCollection() {
+    const owned = PIECES.filter(p => state.owner[p.id] === 'alice');
+    const el = $('collection');
+    if (!owned.length) {
+      el.innerHTML = '<div class="rs-empty">Alice has sold everything.<br>Reset the demo to start again.</div>';
+      return;
+    }
+    el.innerHTML = '';
+    owned.forEach(p => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'rs-piece' + (state.selected && state.selected.id === p.id ? ' is-active' : '');
+      b.innerHTML = `
+        <div class="rs-thumb" style="background:${p.art}"></div>
+        <div class="rs-piece-body">
+          <div class="rs-piece-title">${p.title}</div>
+          <div class="rs-piece-artist">${p.artist}</div>
+          <div class="rs-piece-id">${p.id}</div>
+        </div>`;
+      b.addEventListener('click', () => selectPiece(p));
+      el.appendChild(b);
+    });
+  }
+
+  function selectPiece(p) {
+    state.selected = p;
+    state.listing = null;
+    state.qrPayload = null;
+    state.scanned = null;
+    state.stage = 'idle';
+    renderCollection();
+    renderSellerListing();
+    renderBuyer();
+  }
+
+  function renderSellerListing() {
+    const el = $('sellerListing');
+    if (!state.selected) {
+      el.innerHTML = `
+        <div class="rs-scan-target">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="3" width="18" height="18" rx="2.5"/><path d="m3 16 5-5 4 4 3-3 6 6"/><circle cx="9" cy="8.5" r="1.5"/>
+          </svg>
+          <div class="rs-hint">Pick a piece above to list it for sale.</div>
+        </div>`;
+      return;
+    }
+
+    if (!state.listing) {
+      el.innerHTML = `
+        <div class="rs-label" style="margin-bottom:10px;">List "${state.selected.title}"</div>
+        <div class="rs-price-row">
+          <div class="rs-field">
+            <label for="priceInput">Asking price (HKD)</label>
+            <input type="number" class="input-field" id="priceInput" min="1" step="1" value="${state.price}">
+          </div>
+          <button class="btn-primary" id="listBtn" style="width:auto;margin:0;padding:12px 18px;">Show code</button>
+        </div>`;
+      $('listBtn').addEventListener('click', () => {
+        const v = Number($('priceInput').value);
+        if (!v || v <= 0) return;
+        state.price = v;
+        // The listing record. Note the QR does NOT carry this - see below.
+        state.listing = { address: ADDR.alice, amount: String(v), art: state.selected.id };
+        // The code itself holds only the seller's address. A version-6 / ECC-H
+        // symbol tops out around 58 bytes and this record is 88, so it could not
+        // ride along even if we wanted it to. The buyer resolves the rest from
+        // the address, which is also what the wallet spec asks for.
+        state.qrPayload = 'ethereum:' + ADDR.alice;
+        renderSellerListing();
+        renderBuyer();
+      });
+      return;
+    }
+
+    el.innerHTML = `
+      <div class="rs-label" style="margin-bottom:10px;">Listed &mdash; show this to the buyer</div>
+
+      <div class="rs-compare">
+        <figure class="rs-compare-item">
+          <div class="rs-compare-art" style="background:${state.selected.art}"></div>
+          <figcaption>Artwork</figcaption>
+        </figure>
+        <div class="rs-compare-arrow" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 12h15"/><path d="m13.5 6.5 6 5.5-6 5.5"/>
+          </svg>
+        </div>
+        <figure class="rs-compare-item is-code">
+          <canvas id="rsQrCanvas"></canvas>
+          <figcaption>Payment code</figcaption>
+        </figure>
+      </div>
+
+      <div class="rs-payload">${state.qrPayload}</div>
+
+      <div class="rs-slider-row">
+        <label for="lightInput">Background lightening</label>
+        <output id="lightValue">${state.lightening}%</output>
+        <input type="range" id="lightInput" min="0" max="100" step="1" value="${state.lightening}">
+      </div>
+
+      <div class="rs-scanstate" id="scanState"></div>
+
+      <p class="rs-hint">
+        The artwork is inside the code. Drag the slider down and watch a saturated
+        piece stop scanning &mdash; that is what the control is for.
+      </p>
+      <p class="rs-hint" style="margin-top:8px;">
+        HK$ ${fmt(state.price)} for ${state.selected.title} (${state.selected.id}).
+        The code carries only Alice's address; the price and piece are looked up from it.
+      </p>`;
+
+    drawSellerQr();
+
+    // Redraw just the canvas while dragging - re-rendering the whole panel would
+    // tear the slider out from under the pointer mid-drag.
+    $('lightInput').addEventListener('input', (e) => {
+      state.lightening = Number(e.target.value);
+      $('lightValue').value = state.lightening + '%';
+      drawSellerQr();
+    });
+  }
+
+  function drawSellerQr() {
+    const canvas = $('rsQrCanvas');
+    if (!canvas || !state.selected) return;
+    try {
+      AddrQR.render(canvas, {
+        address: state.qrPayload,
+        background: Artworks.image(state.selected.key),
+        lightening: state.lightening
+      });
+      reportScannability(canvas);
+    } catch (err) {
+      console.error('Overlay QR failed, falling back to a plain code:', err);
+      QRCode.toCanvas(canvas, state.qrPayload, {
+        width: 180, margin: 2, color: { dark: '#1f1f24', light: '#ffffff' }
+      }, e => { if (e) console.error(e); });
+    }
+  }
+
+  /* Decode the code we just drew and say whether it actually reads. The same
+     check a seller would otherwise have to do by eye with their phone. */
+  function reportScannability(canvas) {
+    const el = $('scanState');
+    if (!el || typeof jsQR !== 'function') return;
+    let ok = false;
+    try {
+      const d = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+      const res = jsQR(d.data, canvas.width, canvas.height);
+      ok = !!res && res.data === state.qrPayload;
+    } catch (e) { ok = false; }
+
+    el.className = 'rs-scanstate ' + (ok ? 'ok' : 'bad');
+    el.innerHTML = ok
+      ? CHECK + '<span>Scans correctly at this setting</span>'
+      : '<span class="rs-x">\u2715</span><span>Will not scan &mdash; lighten the background</span>';
+  }
+
+  /* ---------------- buyer ---------------- */
+
+  function renderBuyer() {
+    const el = $('buyerBody');
+
+    // Completed sale is checked first: notifyRegistry() clears the listing, and
+    // without this the confirmation would be wiped before anyone sees it.
+    if (state.stage === 'transferred' && state.scanned) {
+      const done = piece(state.scanned.art);
+      el.innerHTML = `
+        <div class="rs-listing">
+          <div class="rs-listing-thumb" style="background:${done.art}"></div>
+          <div class="rs-listing-meta">
+            <strong>${done.title}</strong>
+            <span>${done.id}</span>
+            <span>bought from Alice</span>
+          </div>
+          <div class="rs-listing-price">HK$ ${fmt(Number(state.scanned.amount))}</div>
+        </div>
+        <div class="rs-steps">
+          ${step(1, 'Buyer paid the seller', state.channel === 'card' ? 'Visa authorisation through YedPay' : 'HKDq transfer on Besu', true)}
+          ${step(2, 'Registry notified', 'Ownership moved by the art ID registry', true)}
+          ${step(3, 'Buyer owns the piece', 'Now in Bob\'s My Collection', true)}
+        </div>
+        <div class="rs-done">
+          ${CHECK}
+          <span>Bob now owns ${done.title}.</span>
+        </div>
+        <button class="btn-primary" id="nextBtn" style="margin:0;">Done</button>`;
+      $('nextBtn').addEventListener('click', () => {
+        state.scanned = null; state.stage = 'idle';
+        renderBuyer();
+      });
+      return;
+    }
+
+    if (!state.listing) {
+      el.innerHTML = `
+        <div class="rs-scan-target">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 8V5.5A2.5 2.5 0 0 1 5.5 3H8"/><path d="M16 3h2.5A2.5 2.5 0 0 1 21 5.5V8"/>
+            <path d="M21 16v2.5a2.5 2.5 0 0 1-2.5 2.5H16"/><path d="M8 21H5.5A2.5 2.5 0 0 1 3 18.5V16"/><path d="M3 12h18"/>
+          </svg>
+          <div class="rs-hint">Waiting for a seller to show a code.</div>
+        </div>`;
+      return;
+    }
+
+    if (!state.scanned) {
+      el.innerHTML = `
+        <div class="rs-scan-target">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 8V5.5A2.5 2.5 0 0 1 5.5 3H8"/><path d="M16 3h2.5A2.5 2.5 0 0 1 21 5.5V8"/>
+            <path d="M21 16v2.5a2.5 2.5 0 0 1-2.5 2.5H16"/><path d="M8 21H5.5A2.5 2.5 0 0 1 3 18.5V16"/><path d="M3 12h18"/>
+          </svg>
+          <div class="rs-hint">Alice is showing a code.</div>
+          <button class="btn-primary" id="scanBtn" style="width:auto;margin:0;padding:12px 20px;">Scan it</button>
+        </div>
+        <p class="rs-hint">
+          Stands in for the wallet's camera scanner, which already exists
+          (<code>startCameraScan</code> in index.html).
+        </p>`;
+      $('scanBtn').addEventListener('click', () => {
+        // All the camera gets is the address. The piece and the price are then
+        // resolved from it - standing in for a lookup against the registry or
+        // backend, which is where the listing really lives.
+        const addr = AddrQR.normalizeAddress(state.qrPayload);
+        const found = (state.listing && state.listing.address === addr) ? state.listing : null;
+        if (!found) {
+          alert('No active listing found for that address.');
+          return;
+        }
+        state.scanned = JSON.parse(JSON.stringify(found));
+        state.stage = 'scanned';
+        renderBuyer();
+      });
+      return;
+    }
+
+    const p = piece(state.scanned.art);
+    const isCard = state.channel === 'card';
+    const paid = state.stage === 'paid' || state.stage === 'transferred';
+    const done = state.stage === 'transferred';
+
+    el.innerHTML = `
+      <div class="rs-listing">
+        <div class="rs-listing-thumb" style="background:${p.art}"></div>
+        <div class="rs-listing-meta">
+          <strong>${p.title}</strong>
+          <span>${p.id}</span>
+          <span>from ${shorten(state.scanned.address)}</span>
+        </div>
+        <div class="rs-listing-price">HK$ ${fmt(Number(state.scanned.amount))}</div>
+      </div>
+
+      ${done ? '' : `
+        <div>
+          <div class="rs-label" style="margin-bottom:8px;">Pay with</div>
+          <div class="rs-channels">
+            <button type="button" class="rs-channel ${isCard ? '' : 'is-active'}" data-ch="chain">
+              <span class="rs-channel-name">On-chain</span>
+              <span class="rs-channel-sub">HKDq stablecoin</span>
+            </button>
+            <button type="button" class="rs-channel ${isCard ? 'is-active' : ''}" data-ch="card">
+              <span class="rs-channel-name">Visa</span>
+              <span class="rs-channel-sub">via YedPay terminal</span>
+            </button>
+          </div>
+        </div>`}
+
+      <div class="rs-steps">
+        ${step(1, 'Buyer pays the seller', isCard ? 'Visa authorisation through YedPay' : 'HKDq transfer on Besu', paid)}
+        ${step(2, 'Wallet notifies the art ID registry', 'Registry moves ownership - not done by the wallet', done)}
+        ${step(3, 'Buyer owns the piece', 'It appears in their My Collection', done)}
+      </div>
+
+      ${done ? `
+        <div class="rs-done">
+          ${CHECK}
+          <span>Bob now owns ${p.title}.</span>
+        </div>` : `
+        <button class="btn-primary" id="payBtn" style="margin:0;">
+          ${paid ? 'Notify registry' : `Pay HK$ ${fmt(Number(state.scanned.amount))}`}
+        </button>`}`;
+
+    el.querySelectorAll('.rs-channel').forEach(b =>
+      b.addEventListener('click', () => { state.channel = b.dataset.ch; renderBuyer(); }));
+
+    const payBtn = $('payBtn');
+    if (payBtn) payBtn.addEventListener('click', paid ? notifyRegistry : pay);
+  }
+
+  function step(n, title, sub, complete) {
+    const cls = complete ? 'done' : '';
+    return `<div class="rs-step ${cls}">
+      <span class="rs-step-dot">${complete ? CHECK : n}</span>
+      <span class="rs-step-text"><b>${title}</b><em>${sub}</em></span>
+    </div>`;
+  }
+
+  /* ---------------- payment + registry ---------------- */
+
+  function pay() {
+    state.stage = 'paid';
+    state.payRef = state.channel === 'card' ? 'auth ' + rndAuth() : rndHex(64).slice(0, 18) + '…';
+    renderBuyer();
+  }
+
+  /* The wallet cannot move ownership itself - this is the call out to the
+     separate art ID registry. Stubbed until that service is available. */
+  function notifyRegistry() {
+    const p = piece(state.scanned.art);
+    state.owner[p.id] = 'bob';
+    state.stage = 'transferred';
+    state.ledger.unshift({
+      time: new Date().toLocaleTimeString(),
+      piece: p.id,
+      from: 'Alice',
+      to: 'Bob',
+      channel: state.channel === 'card' ? 'Visa / YedPay' : 'HKDq on-chain',
+      ref: state.payRef
+    });
+    state.selected = null;
+    state.listing = null;   // seller's listing is finished; state.scanned is
+    state.qrPayload = null; // deliberately kept so the buyer sees the receipt
+    renderCollection();
+    renderSellerListing();
+    renderBuyer();
+    renderLedger();
+  }
+
+  function renderLedger() {
+    const body = $('ledgerBody');
+    if (!state.ledger.length) {
+      body.innerHTML = '<tr><td colspan="6" class="rs-ledger-empty">No transfers yet.</td></tr>';
+      return;
+    }
+    body.innerHTML = state.ledger.map(r => `
+      <tr>
+        <td>${r.time}</td><td>${r.piece}</td><td>${r.from}</td>
+        <td>${r.to}</td><td>${r.channel}</td><td>${r.ref}</td>
+      </tr>`).join('');
+  }
+
+  /* ---------------- boot ---------------- */
+
+  function reset() {
+    state.owner = {};
+    PIECES.forEach(p => state.owner[p.id] = 'alice');
+    state.selected = null; state.listing = null; state.qrPayload = null;
+    state.scanned = null;
+    state.stage = 'idle'; state.channel = 'chain'; state.price = 1500;
+    state.lightening = 70;
+    state.ledger = [];
+    renderCollection(); renderSellerListing(); renderBuyer(); renderLedger();
+  }
+
+  window.addEventListener('load', () => {
+    $('sellerAddr').textContent = shorten(ADDR.alice);
+    $('buyerAddr').textContent = shorten(ADDR.bob);
+    $('rsReset').addEventListener('click', reset);
+    reset();
+    // Paintings decode asynchronously; redraw once they are in so the first
+    // code a seller sees already carries the artwork.
+    Artworks.preload().then(function () {
+      // url() may now point at a local override, so rebuild the thumbnail
+      // backgrounds - and take any caption the local folder supplied, so an
+      // overridden demo is not labelled with the bundled paintings' titles
+      PIECES.forEach(function (p) {
+        p.art = Artworks.background(p.key);
+        var lbl = Artworks.label(p.key);
+        if (lbl) {
+          if (lbl.title)  p.title  = lbl.title;
+          if (lbl.artist) p.artist = lbl.artist;
+        }
+      });
+      renderCollection();
+      if (state.selected) renderSellerListing();
+    });
+  });
+</script>
+
+</body>
+</html>
