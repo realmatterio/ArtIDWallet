@@ -27,6 +27,7 @@
       </span>
     </button>
     <div class="rs-topbar-actions">
+      <span class="rs-demo-badge"><span aria-hidden="true"></span> Demo · no real payments</span>
       <button class="rs-topbtn" id="backBtn" type="button" hidden>&larr; Portal</button>
       <button class="rs-topbtn" id="rsReset" type="button">Reset demo</button>
     </div>
@@ -37,19 +38,19 @@
     <!-- ===================== PORTAL ===================== -->
     <section class="rs-view" id="portalView">
       <div class="rs-portal">
-        <h1>Choose a screen</h1>
-        <p>Each one is a separate device in the real product. The payment code is
-          what passes between them: Alice saves it, Bob loads it.</p>
+        <h1>Artwork resale</h1>
+        <p>Alice lists a piece and saves its payment code. Bob loads that code and
+          pays. The registry moves the token.</p>
         <div class="rs-portal-grid">
           <button class="rs-portal-card" type="button" data-view="alice">
             <span class="rs-portal-avatar">A</span>
             <strong>Alice Wallet</strong>
-            <span>Owns artworks. Lists one for sale and saves the payment code.</span>
+            <span class="rs-portal-description">Lists an artwork and saves the code</span>
           </button>
           <button class="rs-portal-card" type="button" data-view="bob">
             <span class="rs-portal-avatar buyer">B</span>
             <strong>Bob Wallet</strong>
-            <span>Loads a saved code, pays, and receives the artwork.</span>
+            <span class="rs-portal-description">Loads a code and pays</span>
           </button>
           <button class="rs-portal-card" type="button" data-view="registry">
             <span class="rs-portal-avatar registry">
@@ -58,7 +59,7 @@
               </svg>
             </span>
             <strong>Art ID Registry</strong>
-            <span>One ERC-721 token per artwork. Records who owns what.</span>
+            <span class="rs-portal-description">Holds the ERC-721 tokens</span>
           </button>
         </div>
       </div>
@@ -82,7 +83,6 @@
           <div class="rs-collection-head">
             <div>
               <div class="rs-label">ERC-721 Artwork Folder</div>
-              <p class="rs-hint">Pick a piece to put up for sale.</p>
             </div>
           </div>
           <div class="rs-collection" id="collection"></div>
@@ -94,7 +94,6 @@
           <div class="rs-avatar">A</div>
           <div class="rs-who">
             <strong>Payment code</strong>
-            <span>save it and hand it to the buyer</span>
           </div>
           <span class="rs-role">Seller</span>
         </div>
@@ -120,7 +119,6 @@
           <div class="rs-collection-head">
             <div>
               <div class="rs-label">ERC-721 Artwork Folder</div>
-              <p class="rs-hint">Pieces Bob owns.</p>
             </div>
           </div>
           <div class="rs-collection" id="bobFolder"></div>
@@ -132,7 +130,6 @@
           <div class="rs-avatar buyer">B</div>
           <div class="rs-who">
             <strong>Load a payment code</strong>
-            <span>upload the image the seller saved</span>
           </div>
           <span class="rs-role buyer">Buyer</span>
         </div>
@@ -147,8 +144,6 @@
           <div class="rs-collection-head">
             <div>
               <div class="rs-label">Registered artworks</div>
-              <p class="rs-hint">One ERC-721 token per artwork. This registry, not the
-                wallet, is what records ownership.</p>
             </div>
           </div>
           <div class="rs-table-scroll">
@@ -166,7 +161,6 @@
         <div class="rs-ledger-head">
           <div>
             <div class="rs-label">Transfer log</div>
-            <p class="rs-hint">Ownership changes recorded by the registry.</p>
           </div>
         </div>
         <div class="rs-table-scroll">
@@ -339,8 +333,16 @@
           <button class="btn-primary" id="listBtn" style="width:auto;margin:0;padding:12px 18px;">Show code</button>
         </div>`;
       $('listBtn').addEventListener('click', () => {
-        const v = Number($('priceInput').value);
-        if (!v || v <= 0) return;
+        const input = $('priceInput');
+        const v = Number(input.value);
+        if (!v || v <= 0) {
+          // was failing silently, which just looks broken
+          input.setCustomValidity('Enter a price above zero.');
+          input.reportValidity();
+          input.focus();
+          return;
+        }
+        input.setCustomValidity('');
         state.price = v;
         state.listing = { address: ADDR.alice, amount: String(v), art: state.selected.id };
         // The code carries the address only. A version-6 / ECC-H symbol holds
