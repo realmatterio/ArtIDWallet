@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Articulator AI - peer-to-peer artwork resale (demo)
+   Articulator ID - peer-to-peer artwork resale (demo)
 
    Standalone: this page carries its own design tokens and the two component
    styles it borrows, so it can be served on its own without the wallet's
@@ -590,3 +590,217 @@ details.rs-notice > summary:focus-visible { outline: 3px solid rgba(179,38,30,.4
   color: var(--octo-muted);
   line-height: 1.35;
 }
+
+/* ==========================================================================
+   Portal, identity cards, registry
+   ========================================================================== */
+
+.rs-view[hidden] { display: none !important; }
+
+/* --- topbar as a button back to the portal ------------------------------- */
+
+.rs-brand {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.rs-topbar-actions { display: flex; align-items: center; gap: 9px; }
+
+.rs-topbtn {
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 9px 15px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.rs-topbtn:hover { background: rgba(255, 255, 255, 0.26); }
+
+/* --- portal -------------------------------------------------------------- */
+
+.rs-portal { max-width: 900px; margin: 0 auto; padding: clamp(18px, 5vw, 48px) 0; text-align: center; }
+
+.rs-portal h1 {
+  font-size: clamp(26px, 4.4vw, 38px);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  margin-bottom: 10px;
+}
+
+.rs-portal > p {
+  color: var(--octo-muted);
+  font-size: 14.5px;
+  line-height: 1.6;
+  max-width: 54ch;
+  margin: 0 auto 30px;
+}
+
+.rs-portal-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 820px) {
+  .rs-portal-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+.rs-portal-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 24px 22px;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  background: var(--octo-paper);
+  border: 1px solid var(--octo-hairline);
+  border-radius: var(--radius-card);
+  box-shadow: var(--octo-shadow);
+  transition: transform 0.18s ease, border-color 0.18s ease;
+}
+.rs-portal-card:hover { transform: translateY(-3px); border-color: rgba(255, 106, 0, 0.34); }
+.rs-portal-card:focus-visible { outline: 3px solid rgba(255, 106, 0, 0.45); outline-offset: 2px; }
+
+.rs-portal-card strong { font-size: 16.5px; font-weight: 700; }
+.rs-portal-card > span:last-child { font-size: 13px; line-height: 1.55; color: var(--octo-muted); }
+
+.rs-portal-avatar {
+  width: 46px; height: 46px; border-radius: 14px;
+  display: grid; place-items: center;
+  font-size: 19px; font-weight: 700;
+  background: linear-gradient(135deg, #fff1de, #ffd79f);
+  color: var(--octo-orange-deep);
+  margin-bottom: 4px;
+}
+.rs-portal-avatar.buyer { background: linear-gradient(135deg, #e6efff, #bcd4ff); color: #2b4c8c; }
+.rs-portal-avatar.registry { background: linear-gradient(135deg, #e7f6ef, #b9e4cf); color: #1c7a52; }
+.rs-portal-avatar.registry svg { width: 22px; height: 22px; }
+
+/* --- identity card ------------------------------------------------------- */
+
+.rs-idcard {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px 20px;
+  background: var(--octo-paper);
+  border: 1px solid var(--octo-hairline);
+  border-radius: var(--radius-card);
+  box-shadow: var(--octo-shadow);
+}
+
+.rs-idcard-avatar {
+  flex: none; width: 44px; height: 44px; border-radius: 50%;
+  display: grid; place-items: center; font-weight: 700; font-size: 17px;
+  background: linear-gradient(135deg, #fff1de, #ffd79f);
+  color: var(--octo-orange-deep);
+}
+.rs-idcard-avatar.buyer { background: linear-gradient(135deg, #e6efff, #bcd4ff); color: #2b4c8c; }
+
+.rs-idcard-body { min-width: 0; flex: 1; }
+.rs-idcard-body > strong { font-size: 16px; font-weight: 700; display: block; margin-bottom: 7px; }
+
+.rs-idcard dl { display: flex; flex-direction: column; gap: 4px; margin: 0; }
+.rs-idcard dl > div { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.rs-idcard dt {
+  flex: none; width: 34px;
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--octo-label);
+}
+.rs-idcard dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--octo-ink);
+  word-break: break-all;
+}
+
+/* --- token line on folder tiles ------------------------------------------ */
+
+.rs-piece-token {
+  margin-top: 3px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--octo-label);
+}
+
+/* --- upload drop zone ---------------------------------------------------- */
+
+.rs-drop {
+  display: flex; flex-direction: column; align-items: center; gap: 7px;
+  padding: 34px 20px; text-align: center; cursor: pointer;
+  border-radius: var(--radius-inner);
+  border: 1px dashed rgba(255, 106, 0, 0.38);
+  background: var(--octo-cream);
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+.rs-drop:hover { border-color: var(--octo-orange); background: rgba(255, 106, 0, 0.05); }
+.rs-drop svg { width: 30px; height: 30px; color: var(--octo-orange-deep); }
+.rs-drop strong { font-size: 15px; font-weight: 600; }
+.rs-drop span { font-size: 12.5px; color: var(--octo-muted); }
+.rs-drop:focus-within { outline: 3px solid rgba(255, 106, 0, 0.45); outline-offset: 2px; }
+
+/* --- registry table ------------------------------------------------------ */
+
+.rs-regtable { min-width: 760px; }
+.rs-regtable td { font-family: var(--font-mono); font-size: 11.5px; vertical-align: middle; }
+
+.rs-reg-art { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+.rs-reg-thumb {
+  flex: none; width: 34px; height: 34px; border-radius: 7px;
+  background-size: cover; background-position: center;
+  border: 1px solid var(--octo-hairline);
+}
+.rs-reg-art b { font-family: var(--font-ui); font-size: 13px; display: block; }
+.rs-reg-art em { font-style: normal; font-size: 10.5px; color: var(--octo-label); }
+
+.rs-owner {
+  display: inline-block; padding: 3px 10px; border-radius: 999px;
+  font-family: var(--font-ui); font-size: 11.5px; font-weight: 600;
+}
+.rs-owner.alice { background: rgba(255, 106, 0, 0.12); color: var(--octo-orange-deep); }
+.rs-owner.bob   { background: rgba(43, 76, 140, 0.12); color: #2b4c8c; }
+
+/* The registry table sits outside .rs-ledger, so it was missing the header
+   styling defined there. */
+.rs-regtable th {
+  text-align: left;
+  padding: 10px 14px;
+  white-space: nowrap;
+  font-family: var(--font-ui);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--octo-label);
+  border-bottom: 1px solid var(--octo-hairline);
+  background: var(--octo-cream);
+}
+.rs-regtable td { border-bottom: 1px solid var(--octo-hairline); padding: 10px 14px; }
+.rs-regtable tr:last-child td { border-bottom: none; }
+
+/* The empty-state sits inside the folder grid, so it was being squeezed into a
+   single 142px column. */
+.rs-collection .rs-empty { grid-column: 1 / -1; }
+
+/* Alice's pane is full width now that each role has its own screen, so the
+   artwork/code comparison needs a ceiling or the code renders ~730px wide. */
+#sellerListing .rs-compare,
+#sellerListing .rs-payload,
+#sellerListing .rs-slider-row,
+#sellerListing .rs-scanstate,
+#sellerListing > .rs-hint,
+#sellerListing > .btn-primary,
+#sellerListing .rs-price-row {
+  max-width: 620px;
+}
+#sellerListing .rs-scan-target { max-width: 620px; }
