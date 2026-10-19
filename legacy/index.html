@@ -37,11 +37,17 @@
   <!-- Mandatory Login Modal -->
   <div class="modal" id="loginModal" style="display: flex;">
     <div class="modal-content">
-      <h3>User Login</h3>
-      <input type="text" class="input-field" id="userAccountInput" placeholder="User [Alice]">
-      <input type="password" class="input-field" id="loginPasswordInput" placeholder="Login [2345]">
-      <button class="btn-primary" id="loginSubmitBtn">Login</button>
+      <div class="login-mark" aria-hidden="true">Q</div>
+      <p class="login-eyebrow">QUANTUMATTER WALLET</p>
+      <h3>Welcome back</h3>
+      <p class="login-copy">Sign in to access your wallet and account activity.</p>
+      <label class="login-label" for="userAccountInput">Account name</label>
+      <input type="text" class="input-field" id="userAccountInput" placeholder="e.g. Alice" autocomplete="username" aria-label="Account name">
+      <label class="login-label" for="loginPasswordInput">Password</label>
+      <input type="password" class="input-field" id="loginPasswordInput" placeholder="Enter your password" autocomplete="current-password" aria-label="Password">
+      <button class="btn-primary" id="loginSubmitBtn">Sign in</button>
       <div id="loginError" style="color: #e53e3e; font-size: 14px; margin-top: 10px; display: none;">Invalid login credentials</div>
+      <p class="login-secure-note"><span aria-hidden="true">●</span> Secure wallet sign-in</p>
     </div>
   </div>
 
