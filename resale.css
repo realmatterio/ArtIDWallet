@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Articulator AI - peer-to-peer artwork resale (demo)
+   Articulator ID - peer-to-peer artwork resale (demo)
 
    Standalone: this page carries its own design tokens and the two component
    styles it borrows, so it can be served on its own without the wallet's
@@ -113,13 +113,6 @@ body {
 .rs-brand-text strong { color: #fff; font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
 .rs-brand-text span { color: rgba(255,255,255,0.8); font-size: 11.5px; }
 
-.rs-reset {
-  border: 1px solid rgba(255,255,255,0.34);
-  background: rgba(255,255,255,0.16);
-  color: #fff; font-family: inherit; font-size: 12.5px; font-weight: 600;
-  padding: 9px 15px; border-radius: 999px; cursor: pointer;
-}
-.rs-reset:hover { background: rgba(255,255,255,0.26); }
 
 /* --- layout --------------------------------------------------------------- */
 
@@ -132,13 +125,7 @@ body {
   gap: 18px;
 }
 
-.rs-panes {
-  display: grid;
-  gap: 18px;
-  grid-template-columns: minmax(0, 1fr);
-}
 @media (min-width: 980px) {
-  .rs-panes { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
 }
 
 .rs-pane {
@@ -205,7 +192,6 @@ body {
 .rs-thumb { aspect-ratio: 1 / 1; }
 .rs-piece-body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 2px; }
 .rs-piece-title { font-size: 13px; font-weight: 600; line-height: 1.3; }
-.rs-piece-id { font-size: 10.5px; color: var(--octo-label); font-family: var(--font-mono); }
 
 .rs-empty {
   padding: 28px 16px; text-align: center;
@@ -221,11 +207,6 @@ body {
 .rs-field label { font-size: 11.5px; font-weight: 600; color: var(--octo-muted); }
 .rs-field .input-field { margin: 0; padding: 11px 13px; font-size: 14px; }
 
-.rs-qr-wrap {
-  display: flex; flex-direction: column; align-items: center; gap: 12px;
-  padding: 18px; border-radius: var(--radius-inner);
-  background: var(--octo-cream); border: 1px solid var(--octo-hairline);
-}
 #rsQrCanvas { border-radius: 10px; display: block; }
 .rs-payload {
   width: 100%; font-family: var(--font-mono); font-size: 10px; line-height: 1.55;
@@ -332,15 +313,8 @@ body {
 
 /* --- notice --------------------------------------------------------------- */
 
-.rs-notice {
-  display: flex; gap: 12px; padding: 14px 16px;
-  border-radius: var(--radius-inner);
-  background: rgba(179,38,30,0.07); border: 1px solid rgba(179,38,30,0.28);
-  font-size: 12.5px; line-height: 1.6; color: #8f1e18;
-}
-.rs-notice svg { flex: none; width: 17px; height: 17px; margin-top: 1px; }
 
-.rs-piece:focus-visible, .rs-channel:focus-visible, .rs-reset:focus-visible {
+.rs-piece:focus-visible, .rs-channel:focus-visible {
   outline: 3px solid rgba(255,106,0,0.45); outline-offset: 2px;
 }
 @media (prefers-reduced-motion: reduce) { * { transition-duration: .01ms !important; } }
@@ -481,23 +455,15 @@ body {
 
 @media (min-width: 980px) {
   /* the seller side carries more content, so give it more room */
-  .rs-panes { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); }
 
   /* one row of four, instead of three-plus-an-orphan */
   .rs-collection { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
   .rs-piece-body { padding: 9px 10px 11px; }
   .rs-piece-title { font-size: 12.5px; }
-  .rs-piece-id { font-size: 10px; }
 
   /* follows the seller down the page instead of stranding dead space */
-  .rs-panes > .rs-pane:last-child {
-    position: sticky;
-    top: 18px;
-  }
 
   /* the notice was three dense lines of red; calm it down */
-  .rs-notice { font-size: 12px; padding: 12px 15px; align-items: flex-start; }
-  .rs-notice svg { width: 15px; height: 15px; }
 }
 
 /* Wider still: the code can afford to be larger next to the artwork */
@@ -508,16 +474,13 @@ body {
 /* Alice's inventory spans both columns; the code pane and the buyer then sit
    level with each other, which is the comparison worth seeing. */
 @media (min-width: 980px) {
-  .rs-pane-wide { grid-column: 1 / -1; }
 
   /* with the collection lifted out, the two remaining panes are even */
-  .rs-panes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
   /* the collection is wide now, so show all four comfortably */
   .rs-collection { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
   /* sticky no longer helps once the panes are level - it just detaches them */
-  .rs-panes > .rs-pane:last-child { position: static; }
 }
 
 /* The collection spans the full width now, so 1fr columns blew the square
@@ -532,30 +495,7 @@ body {
 
 /* --- collapsed notice ----------------------------------------------------- */
 
-details.rs-notice { display: block; padding: 0; }
 
-details.rs-notice > summary {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 11px 15px;
-  cursor: pointer;
-  list-style: none;
-  font-weight: 600;
-}
-details.rs-notice > summary::-webkit-details-marker { display: none; }
-details.rs-notice > summary::after {
-  content: "";
-  margin-left: auto;
-  width: 7px; height: 7px;
-  border-right: 2px solid currentColor;
-  border-bottom: 2px solid currentColor;
-  transform: rotate(45deg);
-  flex: none;
-}
-details.rs-notice[open] > summary::after { transform: rotate(-135deg); }
-details.rs-notice > summary:focus-visible { outline: 3px solid rgba(179,38,30,.4); outline-offset: -3px; }
-.rs-notice-body { padding: 0 15px 13px 40px; font-weight: 400; }
 
 /* --- slimmer collection header ------------------------------------------- */
 
@@ -569,16 +509,6 @@ details.rs-notice > summary:focus-visible { outline: 3px solid rgba(179,38,30,.4
 }
 .rs-collection-head .rs-hint { margin-top: 4px; }
 
-.rs-addr-chip {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--octo-label);
-  background: var(--octo-cream);
-  border: 1px solid var(--octo-hairline);
-  border-radius: 999px;
-  padding: 5px 11px;
-  white-space: nowrap;
-}
 
 @media (min-width: 980px) {
   .rs-collection { grid-template-columns: repeat(auto-fill, 142px); }
@@ -589,4 +519,420 @@ details.rs-notice > summary:focus-visible { outline: 3px solid rgba(179,38,30,.4
   font-size: 10.5px;
   color: var(--octo-muted);
   line-height: 1.35;
+}
+
+/* ==========================================================================
+   Portal, identity cards, registry
+   ========================================================================== */
+
+.rs-view[hidden] { display: none !important; }
+
+/* --- topbar as a button back to the portal ------------------------------- */
+
+.rs-brand {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.rs-topbar-actions { display: flex; align-items: center; gap: 9px; }
+
+.rs-topbtn {
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 9px 15px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.rs-topbtn:hover { background: rgba(255, 255, 255, 0.26); }
+
+/* --- portal -------------------------------------------------------------- */
+
+.rs-portal { max-width: 900px; margin: 0 auto; padding: clamp(18px, 5vw, 48px) 0; text-align: center; }
+
+.rs-portal h1 {
+  font-size: clamp(26px, 4.4vw, 38px);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  margin-bottom: 10px;
+}
+
+.rs-portal > p {
+  color: var(--octo-muted);
+  font-size: 14.5px;
+  line-height: 1.6;
+  max-width: 54ch;
+  margin: 0 auto 30px;
+}
+
+.rs-portal-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 820px) {
+  .rs-portal-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+.rs-portal-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 24px 22px;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  background: var(--octo-paper);
+  border: 1px solid var(--octo-hairline);
+  border-radius: var(--radius-card);
+  box-shadow: var(--octo-shadow);
+  transition: transform 0.18s ease, border-color 0.18s ease;
+}
+.rs-portal-card:hover { transform: translateY(-3px); border-color: rgba(255, 106, 0, 0.34); }
+.rs-portal-card:focus-visible { outline: 3px solid rgba(255, 106, 0, 0.45); outline-offset: 2px; }
+
+.rs-portal-card strong { font-size: 16.5px; font-weight: 700; }
+.rs-portal-card > .rs-portal-description { font-size: 13px; line-height: 1.55; color: var(--octo-muted); }
+
+.rs-portal-avatar {
+  width: 46px; height: 46px; border-radius: 14px;
+  display: grid; place-items: center;
+  font-size: 19px; font-weight: 700;
+  background: linear-gradient(135deg, #fff1de, #ffd79f);
+  color: var(--octo-orange-deep);
+  margin-bottom: 4px;
+}
+.rs-portal-avatar.buyer { background: linear-gradient(135deg, #e6efff, #bcd4ff); color: #2b4c8c; }
+.rs-portal-avatar.registry { background: linear-gradient(135deg, #e7f6ef, #b9e4cf); color: #1c7a52; }
+.rs-portal-avatar.registry svg { width: 22px; height: 22px; }
+
+/* --- identity card ------------------------------------------------------- */
+
+.rs-idcard {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px 20px;
+  background: var(--octo-paper);
+  border: 1px solid var(--octo-hairline);
+  border-radius: var(--radius-card);
+  box-shadow: var(--octo-shadow);
+}
+
+.rs-idcard-avatar {
+  flex: none; width: 44px; height: 44px; border-radius: 50%;
+  display: grid; place-items: center; font-weight: 700; font-size: 17px;
+  background: linear-gradient(135deg, #fff1de, #ffd79f);
+  color: var(--octo-orange-deep);
+}
+.rs-idcard-avatar.buyer { background: linear-gradient(135deg, #e6efff, #bcd4ff); color: #2b4c8c; }
+
+.rs-idcard-body { min-width: 0; flex: 1; }
+.rs-idcard-body > strong { font-size: 16px; font-weight: 700; display: block; margin-bottom: 7px; }
+
+.rs-idcard dl { display: flex; flex-direction: column; gap: 4px; margin: 0; }
+.rs-idcard dl > div { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.rs-idcard dt {
+  flex: none; width: 34px;
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--octo-label);
+}
+.rs-idcard dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--octo-ink);
+  word-break: break-all;
+}
+
+/* --- token line on folder tiles ------------------------------------------ */
+
+.rs-piece-token {
+  margin-top: 3px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--octo-label);
+}
+
+/* --- upload drop zone ---------------------------------------------------- */
+
+.rs-drop {
+  display: flex; flex-direction: column; align-items: center; gap: 7px;
+  padding: 34px 20px; text-align: center; cursor: pointer;
+  border-radius: var(--radius-inner);
+  border: 1px dashed rgba(255, 106, 0, 0.38);
+  background: var(--octo-cream);
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+.rs-drop:hover { border-color: var(--octo-orange); background: rgba(255, 106, 0, 0.05); }
+.rs-drop svg { width: 30px; height: 30px; color: var(--octo-orange-deep); }
+.rs-drop strong { font-size: 15px; font-weight: 600; }
+.rs-drop span { font-size: 12.5px; color: var(--octo-muted); }
+.rs-drop:focus-within { outline: 3px solid rgba(255, 106, 0, 0.45); outline-offset: 2px; }
+
+/* --- registry table ------------------------------------------------------ */
+
+.rs-regtable { min-width: 760px; }
+.rs-regtable td { font-family: var(--font-mono); font-size: 11.5px; vertical-align: middle; }
+
+.rs-reg-art { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+.rs-reg-thumb {
+  flex: none; width: 34px; height: 34px; border-radius: 7px;
+  background-size: cover; background-position: center;
+  border: 1px solid var(--octo-hairline);
+}
+.rs-reg-art b { font-family: var(--font-ui); font-size: 13px; display: block; }
+.rs-reg-art em { font-style: normal; font-size: 10.5px; color: var(--octo-label); }
+
+.rs-owner {
+  display: inline-block; padding: 3px 10px; border-radius: 999px;
+  font-family: var(--font-ui); font-size: 11.5px; font-weight: 600;
+}
+.rs-owner.alice { background: rgba(255, 106, 0, 0.12); color: var(--octo-orange-deep); }
+.rs-owner.bob   { background: rgba(43, 76, 140, 0.12); color: #2b4c8c; }
+
+/* The registry table sits outside .rs-ledger, so it was missing the header
+   styling defined there. */
+.rs-regtable th {
+  text-align: left;
+  padding: 10px 14px;
+  white-space: nowrap;
+  font-family: var(--font-ui);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--octo-label);
+  border-bottom: 1px solid var(--octo-hairline);
+  background: var(--octo-cream);
+}
+.rs-regtable td { border-bottom: 1px solid var(--octo-hairline); padding: 10px 14px; }
+.rs-regtable tr:last-child td { border-bottom: none; }
+
+/* The empty-state sits inside the folder grid, so it was being squeezed into a
+   single 142px column. */
+.rs-collection .rs-empty { grid-column: 1 / -1; }
+
+/* Alice's pane is full width now that each role has its own screen, so the
+   artwork/code comparison needs a ceiling or the code renders ~730px wide. */
+#sellerListing .rs-compare,
+#sellerListing .rs-payload,
+#sellerListing .rs-slider-row,
+#sellerListing .rs-scanstate,
+#sellerListing > .rs-hint,
+#sellerListing > .btn-primary,
+#sellerListing .rs-price-row {
+  max-width: 620px;
+}
+#sellerListing .rs-scan-target { max-width: 620px; }
+
+/* --- resale flow clarity and small-screen polish ------------------------ */
+.rs-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  padding-top: max(12px, env(safe-area-inset-top));
+}
+
+.rs-demo-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 999px;
+  background: rgba(99, 36, 0, 0.16);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.rs-demo-badge > span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ffe4aa;
+  box-shadow: 0 0 0 3px rgba(255, 228, 170, 0.18);
+}
+
+.rs-portal { padding-top: clamp(24px, 5vw, 52px); }
+
+.rs-portal h1 {
+  max-width: 24ch;
+  margin: 0 0 10px;
+  font-size: clamp(28px, 5vw, 42px);
+  line-height: 1.1;
+  letter-spacing: -0.045em;
+}
+
+.rs-portal > p {
+  margin-bottom: 24px;
+  max-width: 58ch;
+}
+
+
+
+
+
+.rs-portal-grid { gap: 12px; }
+
+.rs-portal-card {
+  padding: 20px;
+  border-color: #eee6df;
+  box-shadow: 0 5px 18px rgba(72, 35, 0, 0.045);
+}
+
+
+
+
+
+.rs-brand:focus-visible,
+.rs-topbtn:focus-visible {
+  outline: 3px solid rgba(255, 106, 0, 0.45);
+  outline-offset: 2px;
+  border-radius: 999px;
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+}
+
+/* ==========================================================================
+   Restraint pass
+
+   The page was reading as a generated demo: a saturated bar across the top, a
+   landing-page hero over a three-item menu, and a paragraph under every
+   heading explaining the heading. Quieter chrome, one accent colour used only
+   where it means something, and the copy cut back to what is not obvious.
+   ========================================================================== */
+
+/* --- header: a bar, not a banner ---------------------------------------- */
+
+.rs-topbar {
+  background: var(--octo-paper);
+  border-bottom: 1px solid var(--octo-hairline);
+  box-shadow: none;
+  padding: 12px clamp(16px, 3vw, 28px);
+}
+
+.rs-brand-mark {
+  background: linear-gradient(135deg, var(--octo-orange), var(--octo-orange-deep));
+  border: none;
+  color: #fff;
+}
+
+.rs-brand-text strong { color: var(--octo-ink); font-size: 14.5px; }
+.rs-brand-text span   { color: var(--octo-label); font-size: 11.5px; }
+
+.rs-topbtn {
+  background: var(--octo-paper);
+  border: 1px solid var(--octo-hairline);
+  color: var(--octo-ink);
+  font-size: 12.5px;
+  padding: 8px 14px;
+}
+.rs-topbtn:hover { background: var(--octo-cream); border-color: rgba(255, 106, 0, 0.3); }
+
+.rs-demo-badge {
+  background: var(--octo-cream);
+  border: 1px solid var(--octo-hairline);
+  color: var(--octo-muted);
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 7px 12px;
+  border-radius: 999px;
+}
+.rs-demo-badge > span { background: var(--octo-orange); }
+
+/* --- portal: a switcher, not a landing page ------------------------------ */
+
+.rs-portal {
+  max-width: 880px;
+  margin: 0;
+  text-align: left;
+  padding: clamp(20px, 4vw, 40px) 0 0;
+}
+
+.rs-portal h1 {
+  font-size: clamp(22px, 3vw, 28px);
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+
+.rs-portal > p {
+  margin: 0 0 26px;
+  max-width: 58ch;
+  font-size: 14px;
+  color: var(--octo-muted);
+}
+
+.rs-portal-card {
+  padding: 18px 20px;
+  gap: 6px;
+  border-radius: 10px;
+  box-shadow: none;
+}
+.rs-portal-card:hover {
+  transform: none;
+  border-color: var(--octo-orange);
+  background: var(--octo-cream);
+}
+
+.rs-portal-avatar {
+  width: 34px; height: 34px; border-radius: 9px;
+  font-size: 15px; margin-bottom: 8px;
+}
+.rs-portal-avatar.registry svg { width: 17px; height: 17px; }
+.rs-portal-card strong { font-size: 15px; }
+.rs-portal-card > .rs-portal-description { font-size: 12.5px; }
+
+/* --- cards generally: hairlines rather than float ----------------------- */
+
+.rs-pane, .rs-ledger, .rs-idcard {
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.rs-piece, .rs-compare, .rs-listing, .rs-drop, .rs-table-scroll {
+  border-radius: 8px;
+}
+
+.rs-pane-head { padding: 14px 20px; }
+.rs-pane-body { padding: 18px 20px; gap: 14px; }
+.rs-idcard { padding: 16px 20px; }
+
+/* a pane head with nothing but a title does not need the avatar shouting */
+.rs-pane-head .rs-avatar { width: 30px; height: 30px; font-size: 13px; }
+.rs-who strong { font-size: 14.5px; }
+
+/* --- the buy/sell panes ------------------------------------------------- */
+
+.rs-compare { background: transparent; border-color: var(--octo-hairline); }
+.rs-compare-item figcaption { font-size: 10px; letter-spacing: 0.1em; }
+
+.rs-drop { padding: 26px 20px; }
+.rs-drop strong { font-size: 14px; }
+
+.btn-primary { box-shadow: none; }
+.btn-primary:hover { transform: none; box-shadow: 0 6px 16px rgba(232, 93, 4, 0.22); }
+
+/* Breakpoints last: the restraint pass above restyles the same selectors at
+   equal specificity, so these have to come after it to win. */
+@media (max-width: 600px) {
+  .rs-topbar { gap: 10px; }
+  .rs-topbar-actions { flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+  .rs-demo-badge { padding: 7px 9px; font-size: 9px; }
+  .rs-topbtn { padding: 8px 11px; font-size: 11px; }
+  .rs-portal-grid { gap: 10px; }
+  .rs-portal-card { min-height: 0; padding: 17px; }
 }
