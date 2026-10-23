@@ -3,15 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Articulator ID - Demo</title>
+  <title>Cross Border Art ID Registry and Resale Service</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
-  <link rel="stylesheet" href="resale.css?v=9">
+  <link rel="stylesheet" href="resale.css?v=12">
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.5/dist/ethers.umd.min.js"></script>
   <script src="artworks.js?v=9"></script>
   <script src="addrQrOverlay.js?v=9"></script>
+  <script src="artid-config.js?v=4"></script>
+  <script src="artid-chain.js?v=4"></script>
 </head>
 <body>
   <header class="rs-topbar">
@@ -22,67 +25,118 @@
         </svg>
       </span>
       <span class="rs-brand-text">
-        <strong>Articulator ID</strong>
-        <span id="brandSub">Demo</span>
+        <strong>Cross Border Art ID</strong>
+        <span id="brandSub">Registry and Resale Service</span>
       </span>
     </button>
     <div class="rs-topbar-actions">
-      <span class="rs-demo-badge"><span aria-hidden="true"></span> Demo · no real payments</span>
+      <span class="rs-demo-badge"><span aria-hidden="true"></span> Demo · payment simulation · qBESU</span>
       <button class="rs-topbtn" id="backBtn" type="button" hidden>&larr; Portal</button>
-      <button class="rs-topbtn" id="rsReset" type="button">Reset demo</button>
+      <button class="rs-topbtn" id="lockWalletBtn" type="button" hidden>Lock all wallets</button>
+      <button class="rs-topbtn" id="rsReset" type="button">Reset</button>
     </div>
   </header>
 
   <main class="rs-shell">
+    <div id="chainStatus" class="rs-chain-status" role="status" aria-live="polite" hidden></div>
 
     <!-- ===================== PORTAL ===================== -->
     <section class="rs-view" id="portalView">
       <div class="rs-portal">
-        <h1>Artwork resale</h1>
-        <p>Alice lists a piece and saves its payment code. Bob loads that code and
-          pays. The registry moves the token.</p>
+        <h1>Cross Border Art ID Registry and Resale Service</h1>
+        <p>Artists and collectors register identities and artwork records on qBESU. Resale payment remains a local demo simulation; ownership changes only after an ERC-721 ID Token transfer is confirmed.</p>
         <div class="rs-portal-grid">
-          <button class="rs-portal-card" type="button" data-view="alice">
+          <article class="rs-portal-wallet is-locked" id="alicePortalCard">
             <span class="rs-portal-avatar">A</span>
-            <strong>Alice Wallet</strong>
-            <span class="rs-portal-description">Lists an artwork and saves the code</span>
-          </button>
-          <button class="rs-portal-card" type="button" data-view="bob">
+            <strong>Artist Alice Wallet</strong>
+            <span class="rs-portal-description" id="aliceConnectionState">Wallet locked <span class="rs-portal-status-icon" id="aliceLockIcon" aria-label="Wallet locked">🔒</span></span>
+            <form id="alicePinForm" class="rs-pin-form">
+              <label for="aliceWalletPin">ICCHSM wallet PIN</label>
+              <div class="rs-pin-row">
+                <input class="input-field" id="aliceWalletPin" type="password" placeholder="4321" autocomplete="off" required>
+                <button class="btn-primary" id="aliceConnectBtn" type="submit">Unlock</button>
+              </div>
+            </form>
+            <button class="rs-topbtn rs-open-wallet" id="aliceOpenBtn" type="button" disabled>Open Artist Alice Wallet</button>
+          </article>
+          <article class="rs-portal-wallet is-locked" id="bobPortalCard">
             <span class="rs-portal-avatar buyer">B</span>
-            <strong>Bob Wallet</strong>
-            <span class="rs-portal-description">Loads a code and pays</span>
-          </button>
-          <button class="rs-portal-card" type="button" data-view="registry">
+            <strong>Collector Bob Wallet</strong>
+            <span class="rs-portal-description" id="bobConnectionState">Wallet locked <span class="rs-portal-status-icon" id="bobLockIcon" aria-label="Wallet locked">🔒</span></span>
+            <form id="bobPinForm" class="rs-pin-form">
+              <label for="bobWalletPin">ICCHSM wallet PIN</label>
+              <div class="rs-pin-row">
+                <input class="input-field" id="bobWalletPin" type="password" placeholder="4321" autocomplete="off" required>
+                <button class="btn-primary" id="bobConnectBtn" type="submit">Unlock</button>
+              </div>
+            </form>
+            <button class="rs-topbtn rs-open-wallet" id="bobOpenBtn" type="button" disabled>Open Collector Bob Wallet</button>
+          </article>
+          <article class="rs-portal-wallet is-unlocked rs-registry-card">
             <span class="rs-portal-avatar registry">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M4 7h16M4 12h16M4 17h16"/>
               </svg>
             </span>
             <strong>Art ID Registry</strong>
-            <span class="rs-portal-description">Holds the ERC-721 tokens</span>
-          </button>
+            <span class="rs-portal-description">Registered artworks and collectors</span>
+            <button class="rs-topbtn rs-open-registry" id="openRegistryBtn" type="button">Open Registry</button>
+          </article>
         </div>
       </div>
     </section>
 
-    <!-- ===================== ALICE ===================== -->
+    <!-- ===================== ARTIST ALICE ===================== -->
     <section class="rs-view" id="aliceView" hidden>
       <div class="rs-idcard">
         <span class="rs-idcard-avatar">A</span>
         <div class="rs-idcard-body">
-          <strong>Alice</strong>
+          <strong>Artist Alice</strong>
           <dl>
             <div><dt>EOA</dt><dd id="aliceEoa">&mdash;</dd></div>
             <div><dt>DID</dt><dd id="aliceDid">&mdash;</dd></div>
           </dl>
+          <span class="rs-listing-status" id="aliceListingStatus"></span>
+          <button class="rs-topbtn" id="aliceRegister" type="button">Register collector</button>
+          <input class="input-field" id="aliceDisplayName" maxlength="80" value="Artist Alice" aria-label="Artist Alice collector display name">
+          <div class="rs-metadata-entry" id="aliceMetadataEntry" hidden>
+            <input class="input-field" id="aliceMetadataURI" maxlength="512" placeholder="Collector metadata URI" aria-label="Artist Alice metadata URI">
+            <button class="rs-topbtn" id="aliceSaveMetadata" type="button">Save metadata</button>
+          </div>
+          <div id="aliceMetadataHistory" class="rs-metadata-history"></div>
+          <button class="rs-topbtn" id="aliceCollectorListingToggle" type="button" hidden></button>
         </div>
       </div>
+
+      <div id="aliceUnlistedNotice" class="rs-unlisted-notice" hidden>Artist Alice is unlisted. Other wallet actions are inactive; use the listing control above to relist.</div>
+      <div id="aliceWalletActions" class="rs-wallet-actions">
+      <section class="rs-pane">
+        <div class="rs-pane-body">
+          <div class="rs-label">Create artwork data on qBESU</div>
+          <div class="rs-price-row">
+            <input class="input-field" id="artworkIdInput" maxlength="96" placeholder="Artwork ID (e.g. did:art:artwork:<keccak256 title>)">
+            <input class="input-field" id="artworkTitleInput" maxlength="120" placeholder="Title">
+            <input class="input-field" id="artworkArtistInput" maxlength="120" placeholder="Artist">
+            <select class="input-field" id="creatorProfile" aria-label="Artwork creator">
+              <option value="alice">Create as Artist Alice</option>
+              <option value="bob">Create as Collector Bob</option>
+            </select>
+          </div>
+          <div class="rs-price-row">
+            <input class="input-field" id="artworkImageInput" maxlength="512" placeholder="Image URI (optional https:// or ipfs://)">
+            <input class="input-field" id="artworkHashInput" maxlength="128" placeholder="Content hash (optional)">
+            <button class="rs-topbtn" id="previewArtworkBtn" type="button">Preview</button>
+            <button class="btn-primary" id="createArtworkBtn" type="button" style="width:auto;margin:0;padding:12px 18px;">Create artwork data</button>
+          </div>
+          <p class="rs-hint">Each record deploys its own ERC-721 ID Token contract and mints token 1 to the registered collector. Contract creation is a qBESU transaction.</p>
+        </div>
+      </section>
 
       <section class="rs-pane">
         <div class="rs-pane-body">
           <div class="rs-collection-head">
             <div>
-              <div class="rs-label">ERC-721 Artwork Folder</div>
+              <div class="rs-label">ERC-721 ID Token Artwork Folder</div>
             </div>
           </div>
           <div class="rs-collection" id="collection"></div>
@@ -93,32 +147,44 @@
         <div class="rs-pane-head">
           <div class="rs-avatar">A</div>
           <div class="rs-who">
-            <strong>Payment code</strong>
+            <strong>Resale payment code</strong>
           </div>
-          <span class="rs-role">Seller</span>
+          <span class="rs-role">Artist</span>
         </div>
         <div class="rs-pane-body" id="sellerListing"></div>
       </section>
+      </div>
     </section>
 
-    <!-- ===================== BOB ===================== -->
+    <!-- ===================== COLLECTOR BOB ===================== -->
     <section class="rs-view" id="bobView" hidden>
       <div class="rs-idcard">
         <span class="rs-idcard-avatar buyer">B</span>
         <div class="rs-idcard-body">
-          <strong>Bob</strong>
+          <strong>Collector Bob</strong>
           <dl>
             <div><dt>EOA</dt><dd id="bobEoa">&mdash;</dd></div>
             <div><dt>DID</dt><dd id="bobDid">&mdash;</dd></div>
           </dl>
+          <span class="rs-listing-status" id="bobListingStatus"></span>
+          <button class="rs-topbtn" id="bobRegister" type="button">Register collector</button>
+          <input class="input-field" id="bobDisplayName" maxlength="80" value="Collector Bob" aria-label="Collector Bob display name">
+          <div class="rs-metadata-entry" id="bobMetadataEntry" hidden>
+            <input class="input-field" id="bobMetadataURI" maxlength="512" placeholder="Collector metadata URI" aria-label="Collector Bob metadata URI">
+            <button class="rs-topbtn" id="bobSaveMetadata" type="button">Save metadata</button>
+          </div>
+          <div id="bobMetadataHistory" class="rs-metadata-history"></div>
+          <button class="rs-topbtn" id="bobCollectorListingToggle" type="button" hidden></button>
         </div>
       </div>
 
+      <div id="bobUnlistedNotice" class="rs-unlisted-notice" hidden>Collector Bob is unlisted. Other wallet actions are inactive; use the listing control above to relist.</div>
+      <div id="bobWalletActions" class="rs-wallet-actions">
       <section class="rs-pane">
         <div class="rs-pane-body">
           <div class="rs-collection-head">
             <div>
-              <div class="rs-label">ERC-721 Artwork Folder</div>
+              <div class="rs-label">ERC-721 ID Token Artwork Folder</div>
             </div>
           </div>
           <div class="rs-collection" id="bobFolder"></div>
@@ -129,12 +195,13 @@
         <div class="rs-pane-head">
           <div class="rs-avatar buyer">B</div>
           <div class="rs-who">
-            <strong>Load a payment code</strong>
+            <strong>Load resale payment code</strong>
           </div>
-          <span class="rs-role buyer">Buyer</span>
+          <span class="rs-role buyer">Collector</span>
         </div>
         <div class="rs-pane-body" id="buyerBody"></div>
       </section>
+      </div>
     </section>
 
     <!-- ===================== REGISTRY ===================== -->
@@ -145,13 +212,26 @@
             <div>
               <div class="rs-label">Registered artworks</div>
             </div>
+            <button class="rs-topbtn" id="refreshChainBtn" type="button">Refresh from qBESU</button>
           </div>
           <div class="rs-table-scroll">
             <table class="rs-regtable">
               <thead>
-                <tr><th>Artwork</th><th>ERC-721 token</th><th>Registry DID</th><th>Owner</th></tr>
+                <tr><th>Artwork</th><th>ERC-721 ID Token</th><th>Artwork DID</th><th>Owner</th><th>Listing</th><th>Action</th><th>Transaction</th></tr>
               </thead>
               <tbody id="registryBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="rs-pane">
+        <div class="rs-pane-body">
+          <div class="rs-label">Registered collectors</div>
+          <div class="rs-table-scroll">
+            <table class="rs-regtable">
+              <thead><tr><th>Collector</th><th>EOA</th><th>Collector DID</th><th>Listing</th><th>Action</th><th>Transaction</th></tr></thead>
+              <tbody id="collectorRegistryBody"></tbody>
             </table>
           </div>
         </div>
@@ -177,44 +257,26 @@
     </section>
 
   </main>
+  <footer class="rs-footer">© <a href="https://www.realmatter.io" target="_blank" rel="noopener noreferrer">Real Matter Technology Limted</a></footer>
+  <dialog id="artworkPreviewDialog" class="rs-preview-dialog">
+    <form method="dialog"><button class="rs-preview-close" aria-label="Close preview">×</button></form>
+    <h2 id="previewTitle">Artwork data preview</h2>
+    <img id="previewImage" class="rs-preview-image" alt="Artwork preview">
+    <p id="previewArtist"></p>
+    <p id="previewArtworkId"></p>
+    <p id="previewImageURI"></p>
+  </dialog>
 <script>
-  /* ======================================================================
-     Articulator ID - demo
-
-     Four screens behind a portal: Alice's wallet, Bob's wallet, and the Art
-     ID registry. In the real product these are separate devices, so the
-     payment code is what passes between them - Alice saves it as a PNG, Bob
-     uploads that file. State is shared here only because it is one page.
-
-     Nothing touches a chain. Ownership lives in the registry view, which
-     stands in for the real art ID registry; a Besu endpoint can be wired in
-     once the layout is settled.
-     ====================================================================== */
-
   const ADDR = {
-    alice: '0x29F780C62F75DCCc7fF6f43f7e319E4da870a3C7',
-    bob:   '0x8a03Cd8Fdb225Fe1A74e94C3b6d193F3ABAE52D5'
+    alice: '',
+    bob: ''
   };
-
-  const collectorDid = eoa => 'did:art:collector:' + eoa;
-  const registryDid  = erc721 => 'did:art:registry:' + erc721;
-
-  /* One ERC-721 token per artwork. Addresses are fixed so the demo reads the
-     same every run; they are placeholders until real contracts exist. */
-  const PIECES = [
-    { id: 'ART-041', title: 'The Scream',       artist: 'Edvard Munch, 1893',     key: 'scream',
-      erc721: '0x28a06C3D77246457E12E26d72635931ABD09e667' },
-    { id: 'ART-067', title: 'The Great Wave',   artist: 'Hokusai, c.1831',        key: 'greatWave',
-      erc721: '0x2b1124fe9e0Bc7A5F22Be604d853233596BEAc30' },
-    { id: 'ART-088', title: 'The Starry Night', artist: 'Vincent van Gogh, 1889', key: 'starryNight',
-      erc721: '0xB56Fe4DA036930CBf1C4FCB7D33479945B445D4a' },
-    { id: 'ART-095', title: 'Sunflowers',       artist: 'Vincent van Gogh, 1888', key: 'sunflowers',
-      erc721: '0x78D2efb10de03C5D1822037a1979BC69e31CE426' }
-  ].map(p => Object.assign(p, { art: Artworks.background(p.key) }));
 
   const state = {
     view: 'portal',
-    owner: {},            // pieceId -> 'alice' | 'bob'
+    accounts: {},
+    collectors: [],
+    artworks: [],
     selected: null,
     price: 1500,
     listing: null,        // { address, amount, art } - the seller's record
@@ -227,8 +289,15 @@
   };
 
   const $ = id => document.getElementById(id);
-  const piece = id => PIECES.find(p => p.id === id);
-  const shorten = a => a.slice(0, 10) + '…' + a.slice(-6);
+  const profiles = ['alice', 'bob'];
+  const profileName = profile => profile === 'alice' ? 'Artist Alice' : 'Collector Bob';
+  const isConnected = profile => ArtIDChain.isConnected(profile);
+  const anyWalletConnected = () => profiles.some(isConnected);
+  const piece = id => state.artworks.find(p => p.id === id);
+  const shorten = a => a ? a.slice(0, 10) + '…' + a.slice(-6) : '—';
+  const escapeHtml = value => String(value == null ? '' : value).replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[ch]);
   const fmt = n => new Intl.NumberFormat('en-HK', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
   const rndHex = n => '0x' + Array.from({length:n}, () => '0123456789abcdef'[Math.random()*16|0]).join('');
   const rndAuth = () => Array.from({length:6}, () => '0123456789ABCDEFGHJKLMNPQRSTUVWXYZ'[Math.random()*34|0]).join('');
@@ -238,13 +307,17 @@
   /* ---------------- views ---------------- */
 
   const VIEW_SUB = {
-    portal:   'Demo',
-    alice:    'Alice Wallet',
-    bob:      'Bob Wallet',
-    registry: 'Art ID Registry'
+    portal:   'Registry and Resale Service',
+    alice:    'Artist Alice Wallet',
+    bob:      'Collector Bob Wallet',
+    registry: 'Registered Artworks and Collectors'
   };
 
   function showView(name) {
+    if (name === 'alice' && !isConnected('alice') || name === 'bob' && !isConnected('bob')) {
+      showChainStatus('Unlock this wallet with its ICCHSM PIN before opening it.', 'error');
+      return;
+    }
     state.view = name;
     ['portal', 'alice', 'bob', 'registry'].forEach(function (v) {
       $(v + 'View').hidden = (v !== name);
@@ -252,9 +325,77 @@
     $('backBtn').hidden = (name === 'portal');
     $('brandSub').textContent = VIEW_SUB[name] || 'Demo';
     window.scrollTo({ top: 0 });
-    if (name === 'alice')    { renderCollection(); renderSellerListing(); }
-    if (name === 'bob')      { renderBobFolder(); renderBuyer(); }
+    if (name === 'alice')    { renderCollection(); renderSellerListing(); renderCollector('alice'); }
+    if (name === 'bob')      { renderBobFolder(); renderBuyer(); renderCollector('bob'); }
     if (name === 'registry') { renderRegistry(); renderLedger(); }
+    updatePortalWallet('alice');
+    updatePortalWallet('bob');
+  }
+
+  function transactionLink(hash, label) {
+    if (!hash || !/^0x[a-fA-F0-9]{64}$/.test(hash)) return '—';
+    const url = 'https://quantumbesu.web.app/quantumbesu.html?transaction=' + encodeURIComponent(hash);
+    return `<a href="${url}" target="_blank" rel="noopener noreferrer">${escapeHtml(label || shorten(hash))}</a>`;
+  }
+
+  function displayImageUrl(uri) {
+    const match = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/([^/]+)\/(.+)$/i.exec(uri || '');
+    return match
+      ? 'https://raw.githubusercontent.com/' + match[1] + '/' + match[2] + '/' + match[3] + '/' + match[4]
+      : uri;
+  }
+
+  function updatePortalWallet(profile) {
+    const unlocked = isConnected(profile);
+    const account = state.accounts[profile];
+    const card = $(profile + 'PortalCard');
+    card.classList.toggle('is-locked', !unlocked);
+    card.classList.toggle('is-unlocked', unlocked);
+    setPortalConnectionLabel(profile, !unlocked
+      ? 'Wallet locked'
+      : account && account.registered && !account.listed
+        ? 'Wallet unlocked · collector unlisted'
+        : 'Wallet unlocked', unlocked);
+    $(profile + 'OpenBtn').disabled = !unlocked;
+    $(profile + 'ConnectBtn').textContent = unlocked ? 'Reconnect' : 'Unlock';
+  }
+
+  function setPortalConnectionLabel(profile, label, unlocked) {
+    const connectionState = $(profile + 'ConnectionState');
+    let lockIcon = $(profile + 'LockIcon');
+    if (!lockIcon) {
+      lockIcon = document.createElement('span');
+      lockIcon.className = 'rs-portal-status-icon';
+      lockIcon.id = profile + 'LockIcon';
+    }
+    lockIcon.textContent = unlocked ? '🔓' : '🔒';
+    lockIcon.setAttribute('aria-label', unlocked ? 'Wallet unlocked' : 'Wallet locked');
+    connectionState.replaceChildren(document.createTextNode(label + ' '), lockIcon);
+  }
+
+  async function connectWallet(profile) {
+    const input = $(profile + 'WalletPin');
+    const button = $(profile + 'ConnectBtn');
+    button.disabled = true;
+    setPortalConnectionLabel(profile, 'Connecting to ICCHSMatter and qBESU…', false);
+    try {
+      await ArtIDChain.connect(profile, input.value);
+      input.value = '';
+      await refreshChainState();
+      $('lockWalletBtn').hidden = false;
+      updatePortalWallet(profile);
+      showChainStatus(profileName(profile) + ' wallet unlocked and connected to qBESU.', 'success');
+    } catch (error) {
+      ArtIDChain.lock(profile);
+      delete state.accounts[profile];
+      ADDR[profile] = '';
+      updatePortalWallet(profile);
+      input.focus();
+      showChainStatus(error.message, 'error');
+    } finally {
+      button.disabled = false;
+      updatePortalWallet(profile);
+    }
   }
 
   /* ---------------- folders ---------------- */
@@ -262,24 +403,28 @@
   function folderTile(p, onPick) {
     const b = document.createElement('button');
     b.type = 'button';
-    b.className = 'rs-piece' + (state.selected && state.selected.id === p.id ? ' is-active' : '');
+    b.className = 'rs-piece' + (state.selected && state.selected.id === p.id ? ' is-active' : '') +
+      (p.listed ? '' : ' is-unlisted');
     b.innerHTML = `
-      <div class="rs-thumb" style="background:${p.art}"></div>
+      <div class="rs-thumb"><img src="${escapeHtml(displayImageUrl(p.imageURI))}" alt="${escapeHtml(p.title)}" loading="lazy"></div>
       <div class="rs-piece-body">
-        <div class="rs-piece-title">${p.title}</div>
-        <div class="rs-piece-artist">${p.artist}</div>
-        <div class="rs-piece-token" title="${p.erc721}">${shorten(p.erc721)}</div>
+        <div class="rs-piece-title">${escapeHtml(p.title)}</div>
+        <div class="rs-piece-artist">${escapeHtml(p.artist)}</div>
+        <div class="rs-piece-token">${escapeHtml(p.did)}</div>
+        <div class="rs-piece-token">Creation ${transactionLink(p.creationTxHash)}</div>
+        ${p.listed ? '' : '<strong class="rs-listing-status is-unlisted-label">Unlisted · inactive</strong>'}
       </div>`;
-    if (onPick) b.addEventListener('click', () => onPick(p));
+    if (onPick && p.listed) b.addEventListener('click', () => onPick(p));
     else b.disabled = true;
     return b;
   }
 
   function renderCollection() {
-    const owned = PIECES.filter(p => state.owner[p.id] === 'alice');
+    const address = state.accounts.alice && state.accounts.alice.address;
+    const owned = state.artworks.filter(p => address && p.owner.toLowerCase() === address.toLowerCase());
     const el = $('collection');
     if (!owned.length) {
-      el.innerHTML = '<div class="rs-empty">Alice has sold everything.<br>Reset the demo to start again.</div>';
+      el.innerHTML = `<div class="rs-empty">${address ? 'No ERC-721 ID Tokens owned by Artist Alice yet.' : 'Unlock Artist Alice Wallet to view owned records.'}</div>`;
       return;
     }
     el.innerHTML = '';
@@ -287,10 +432,11 @@
   }
 
   function renderBobFolder() {
-    const owned = PIECES.filter(p => state.owner[p.id] === 'bob');
+    const address = state.accounts.bob && state.accounts.bob.address;
+    const owned = state.artworks.filter(p => address && p.owner.toLowerCase() === address.toLowerCase());
     const el = $('bobFolder');
     if (!owned.length) {
-      el.innerHTML = '<div class="rs-empty">Nothing yet.<br>Load a payment code below to buy a piece.</div>';
+      el.innerHTML = `<div class="rs-empty">${address ? 'No ERC-721 ID Tokens owned by Collector Bob yet.' : 'Unlock Collector Bob Wallet to view owned records.'}</div>`;
       return;
     }
     el.innerHTML = '';
@@ -324,7 +470,7 @@
 
     if (!state.listing) {
       el.innerHTML = `
-        <div class="rs-label" style="margin-bottom:10px;">List "${state.selected.title}"</div>
+        <div class="rs-label" style="margin-bottom:10px;">List "${escapeHtml(state.selected.title)}"</div>
         <div class="rs-price-row">
           <div class="rs-field">
             <label for="priceInput">Asking price (HKD)</label>
@@ -386,12 +532,12 @@
       <button class="btn-primary" id="saveQrBtn" style="margin-top:14px;">Save payment code</button>
 
       <p class="rs-hint" style="margin-top:12px;">
-        Saves a PNG. Open Bob Wallet from the portal and load that file there.
+        Saves a PNG. Open Collector Bob Wallet from the portal and load that file there.
         If the badge above is red the code will not decode &mdash; lighten the
         background before saving.
       </p>
       <p class="rs-hint" style="margin-top:8px;">
-        HK$ ${fmt(state.price)} for ${state.selected.title} (${state.selected.id}),
+        HK$ ${fmt(state.price)} for ${escapeHtml(state.selected.title)} (${escapeHtml(state.selected.id)}),
         token ${shorten(state.selected.erc721)}.
       </p>`;
 
@@ -460,25 +606,30 @@
 
     if (state.stage === 'transferred' && state.scanned) {
       const done = piece(state.scanned.art);
+      if (!done) {
+        el.innerHTML = '<div class="rs-scanstate bad"><span>Artwork metadata is no longer available in the registry.</span></div>';
+        return;
+      }
       el.innerHTML = `
         <div class="rs-listing">
           <div class="rs-listing-thumb" style="background:${done.art}"></div>
           <div class="rs-listing-meta">
-            <strong>${done.title}</strong>
-            <span>${done.id} &middot; ${shorten(done.erc721)}</span>
-            <span>bought from Alice</span>
+            <strong>${escapeHtml(done.title)}</strong>
+            <span>${escapeHtml(done.id)} &middot; ${shorten(done.erc721)}</span>
+            <span>Transferred by Artist Alice</span>
           </div>
           <div class="rs-listing-price">HK$ ${fmt(Number(state.scanned.amount))}</div>
         </div>
         <div class="rs-steps">
-          ${step(1, 'Buyer paid the seller', state.channel === 'card' ? 'Visa authorisation through YedPay' : 'HKDq transfer on Besu', true)}
-          ${step(2, 'Registry notified', 'Ownership moved by the art ID registry', true)}
-          ${step(3, 'Buyer owns the piece', 'Now in Bob\'s ERC-721 folder', true)}
+          ${step(1, 'Payment demo completed', 'Payment was simulated and not submitted to qBESU', true)}
+          ${step(2, 'ERC-721 ID Token transfer confirmed', 'Ownership was read back from qBESU', true)}
+          ${step(3, 'Collector owns the artwork', 'Now in Collector Bob\'s ERC-721 ID Token folder', true)}
         </div>
-        <div class="rs-done">${CHECK}<span>Bob now owns ${done.title}.</span></div>
+        <div class="rs-done">${CHECK}<span>Collector Bob now owns ${escapeHtml(done.title)}.</span></div>
+        <p class="rs-hint">Transaction: <code>${escapeHtml(state.txHash || '')}</code></p>
         <button class="btn-primary" id="nextBtn" style="margin:0;">Done</button>`;
       $('nextBtn').addEventListener('click', () => {
-        state.scanned = null; state.stage = 'idle';
+        state.scanned = null; state.stage = 'idle'; state.txHash = null;
         renderBuyer();
       });
       return;
@@ -508,26 +659,33 @@
     }
 
     const p = piece(state.scanned.art);
+    if (!p) {
+      el.innerHTML = '<div class="rs-scanstate bad"><span>That artwork is not present in the on-chain registry.</span></div>';
+      return;
+    }
     const isCard = state.channel === 'card';
     const paid = state.stage === 'paid';
+    const transferFailed = state.stage === 'transferFailed';
 
     el.innerHTML = `
       <div class="rs-listing">
         <div class="rs-listing-thumb" style="background:${p.art}"></div>
         <div class="rs-listing-meta">
-          <strong>${p.title}</strong>
-          <span>${p.id} &middot; ${shorten(p.erc721)}</span>
+          <strong>${escapeHtml(p.title)}</strong>
+          <span>${escapeHtml(p.id)} &middot; ${shorten(p.erc721)}</span>
           <span>from ${shorten(state.scanned.address)}</span>
         </div>
         <div class="rs-listing-price">HK$ ${fmt(Number(state.scanned.amount))}</div>
       </div>
+      ${state.stage === 'transferring' ? `<div class="rs-chain-status"><span class="rs-chain-spinner"></span><span>Submitted—waiting for a qBESU block. ${escapeHtml(state.txHash || '')}</span></div>` : ''}
+      ${transferFailed ? `<div class="rs-scanstate bad"><span>The ERC-721 ID Token transfer failed. No ownership change was recorded.</span></div>` : ''}
 
       <div>
         <div class="rs-label" style="margin-bottom:8px;">Pay with</div>
         <div class="rs-channels">
           <button type="button" class="rs-channel ${isCard ? '' : 'is-active'}" data-ch="chain">
             <span class="rs-channel-name">On-chain</span>
-            <span class="rs-channel-sub">HKDq stablecoin</span>
+            <span class="rs-channel-sub">Simulated only · no qBESU payment</span>
           </button>
           <button type="button" class="rs-channel ${isCard ? 'is-active' : ''}" data-ch="card">
             <span class="rs-channel-name">Visa</span>
@@ -537,18 +695,20 @@
       </div>
 
       <div class="rs-steps">
-        ${step(1, 'Buyer pays the seller', isCard ? 'Visa authorisation through YedPay' : 'HKDq transfer on Besu', paid)}
-        ${step(2, 'Wallet notifies the art ID registry', 'Registry moves ownership - not done by the wallet', false)}
+        ${step(1, 'Payment demo', isCard ? 'Visa terminal payment is simulated' : 'On-chain payment option is simulated only', paid || transferFailed || state.stage === 'transferring')}
+        ${step(2, 'Transfer artwork ERC-721 ID Token', 'Artist Alice signs a transfer to Collector Bob', state.stage === 'transferred')}
         ${step(3, 'Buyer owns the piece', 'It appears in their ERC-721 folder', false)}
       </div>
 
-      <button class="btn-primary" id="payBtn" style="margin:0;">
+      <button class="btn-primary" id="payBtn" style="margin:0;" ${state.stage === 'transferring' ? 'disabled' : ''}>
         ${paid ? 'Notify registry' : 'Pay HK$ ' + fmt(Number(state.scanned.amount))}
       </button>`;
 
     el.querySelectorAll('.rs-channel').forEach(b =>
       b.addEventListener('click', () => { state.channel = b.dataset.ch; renderBuyer(); }));
-    $('payBtn').addEventListener('click', paid ? notifyRegistry : pay);
+    if (transferFailed) $('payBtn').textContent = 'Retry ERC-721 ID Token transfer';
+    if (paid || transferFailed) $('payBtn').addEventListener('click', notifyRegistry);
+    else if (state.stage !== 'transferring') $('payBtn').addEventListener('click', pay);
   }
 
   /** Decode an uploaded code and resolve the listing it points at. */
@@ -619,40 +779,111 @@
     renderBuyer();
   }
 
-  /* The wallet cannot move ownership itself - this is the call out to the
-     separate art ID registry. Stubbed until that service exists. */
-  function notifyRegistry() {
+  async function notifyRegistry() {
+    if (!state.scanned || !['paid', 'transferFailed'].includes(state.stage)) return;
     const p = piece(state.scanned.art);
-    state.owner[p.id] = 'bob';
-    state.stage = 'transferred';
-    state.ledger.unshift({
-      time: new Date().toLocaleTimeString(),
-      piece: p.id,
-      from: 'Alice',
-      to: 'Bob',
-      channel: state.channel === 'card' ? 'Visa / YedPay' : 'HKDq on-chain',
-      ref: state.payRef
-    });
-    state.selected = null;
-    state.listing = null;
-    state.qrPayload = null;
-    renderBobFolder();
+    if (!p) {
+      showChainStatus('The artwork is not found in the on-chain registry.', 'error');
+      return;
+    }
+    state.stage = 'transferring';
+    state.transferError = null;
+    state.txHash = null;
     renderBuyer();
+    try {
+      const result = await ArtIDChain.transfer(p.erc721, 'alice', 'bob');
+      state.txHash = result.txHash;
+      renderBuyer();
+      const receipt = await ArtIDChain.waitForReceipt(state.txHash, () => {
+        showChainStatus('ERC-721 ID Token transfer submitted—waiting for a qBESU block. Blocks may take about a minute.', 'pending', state.txHash);
+      });
+      if (receipt.status !== 'confirmed') {
+        state.stage = 'transferFailed';
+        state.transferError = 'qBESU returned a failed transaction receipt.';
+        showChainStatus(state.transferError, 'error', state.txHash);
+        renderBuyer();
+        return;
+      }
+      await refreshChainState();
+      const current = piece(state.scanned.art);
+      if (!current || current.owner.toLowerCase() !== ADDR.bob.toLowerCase()) {
+        throw new Error('The receipt succeeded but the ownership read did not show Collector Bob as owner.');
+      }
+      state.stage = 'transferred';
+      state.selected = null;
+      state.listing = null;
+      state.qrPayload = null;
+      showChainStatus('ERC-721 ID Token transfer confirmed in qBESU.', 'success', state.txHash);
+      renderBobFolder();
+      renderBuyer();
+    } catch (error) {
+      state.stage = 'transferFailed';
+      state.transferError = error.message;
+      showChainStatus(error.message, 'error', state.txHash);
+      renderBuyer();
+    }
   }
 
   /* ---------------- registry ---------------- */
 
   function renderRegistry() {
-    $('registryBody').innerHTML = PIECES.map(p => `
-      <tr>
-        <td class="rs-reg-art">
-          <span class="rs-reg-thumb" style="background:${p.art}"></span>
-          <span><b>${p.title}</b><em>${p.id}</em></span>
-        </td>
-        <td>${p.erc721}</td>
-        <td>${registryDid(p.erc721)}</td>
-        <td><span class="rs-owner ${state.owner[p.id]}">${state.owner[p.id] === 'bob' ? 'Bob' : 'Alice'}</span></td>
-      </tr>`).join('');
+    if (!state.artworks.length) {
+      $('registryBody').innerHTML = '<tr><td colspan="7" class="rs-ledger-empty">No artwork records are registered.</td></tr>';
+    } else {
+      $('registryBody').innerHTML = state.artworks.map(p => {
+        const ownerProfile = profileForAddress(p.owner);
+        return `
+          <tr class="${p.listed ? '' : 'is-unlisted-row'}">
+            <td class="rs-reg-art">
+              <img class="rs-reg-thumb" src="${escapeHtml(displayImageUrl(p.imageURI))}" alt="${escapeHtml(p.title)}" loading="lazy">
+              <span><b>${escapeHtml(p.title)}</b><em>${escapeHtml(p.artist)}</em><em>${escapeHtml(p.artworkId)}</em><em>Creator: ${escapeHtml(p.creator)}</em><em title="${escapeHtml(p.contentHash)}">Content hash: ${escapeHtml(shorten(p.contentHash))}</em></span>
+            </td>
+            <td>${escapeHtml(p.erc721)} · token #1</td>
+            <td>${transactionLink(p.creationTxHash, escapeHtml(p.did))}</td>
+            <td><span class="rs-owner">${escapeHtml(ownerLabel(p.owner))}</span><em>${transactionLink(p.transferTxHash, 'Latest transfer')}</em></td>
+            <td>${p.listed ? 'Listed' : 'Unlisted'}</td>
+            <td><button class="rs-topbtn" data-artwork-listing="${escapeHtml(p.erc721)}" ${ownerProfile && isConnected(ownerProfile) && state.accounts[ownerProfile].registered && state.accounts[ownerProfile].listed && state.listingUpdating !== p.erc721 ? '' : 'disabled'}>${p.listed ? 'Unlist' : 'List'}</button></td>
+            <td>${transactionLink(p.listingTxHash || p.creationTxHash)}</td>
+          </tr>`;
+      }).join('');
+    }
+    const collectorBody = $('collectorRegistryBody');
+    if (!state.collectors.length) {
+      collectorBody.innerHTML = '<tr><td colspan="6" class="rs-ledger-empty">No collectors are registered.</td></tr>';
+    } else {
+      collectorBody.innerHTML = state.collectors.map(collector => {
+        const profile = profileForAddress(collector.address);
+        const latestMetadata = collector.metadataHistory[collector.metadataHistory.length - 1];
+        return `
+          <tr class="${collector.listed ? '' : 'is-unlisted-row'}">
+            <td><b>${escapeHtml(collector.displayName)}</b>${latestMetadata && latestMetadata.metadataURI ? `<em>${escapeHtml(latestMetadata.metadataURI)}</em>` : ''}</td>
+            <td>${escapeHtml(collector.address)}</td>
+            <td>${transactionLink(collector.registrationTxHash, escapeHtml(collector.did))}</td>
+            <td>${collector.listed ? 'Listed' : 'Unlisted'}</td>
+            <td><button class="rs-topbtn" data-collector-listing="${escapeHtml(collector.address)}" ${profile && isConnected(profile) ? '' : 'disabled'}>${collector.listed ? 'Unlist' : 'List'}</button></td>
+            <td>${transactionLink(collector.listingTxHash || (latestMetadata && latestMetadata.transactionHash) || collector.registrationTxHash)}</td>
+          </tr>`;
+      }).join('');
+    }
+    document.querySelectorAll('[data-collector-listing]').forEach(button => {
+      button.addEventListener('click', () => {
+        const collector = state.collectors.find(item => item.address.toLowerCase() === button.dataset.collectorListing.toLowerCase());
+        const profile = collector && profileForAddress(collector.address);
+        if (profile) setCollectorListing(profile, !collector.listed);
+      });
+    });
+    document.querySelectorAll('[data-artwork-listing]').forEach(button => {
+      button.addEventListener('click', () => {
+        const artwork = state.artworks.find(item => item.erc721.toLowerCase() === button.dataset.artworkListing.toLowerCase());
+        const profile = artwork && profileForAddress(artwork.owner);
+        if (artwork && profile) setArtworkListing(artwork, profile, !artwork.listed);
+      });
+    });
+  }
+
+  function profileForAddress(address) {
+    return profiles.find(profile => state.accounts[profile] &&
+      state.accounts[profile].address.toLowerCase() === address.toLowerCase()) || null;
   }
 
   function renderLedger() {
@@ -662,51 +893,375 @@
       return;
     }
     body.innerHTML = state.ledger.map(r => `
-      <tr>
-        <td>${r.time}</td><td>${r.piece}</td><td>${r.from}</td>
-        <td>${r.to}</td><td>${r.channel}</td><td>${r.ref}</td>
-      </tr>`).join('');
+      <tr><td>${escapeHtml(r.time)}</td><td>${shorten(r.artwork)}</td>
+        <td>${shorten(r.from)}</td><td>${shorten(r.to)}</td>
+        <td>ERC-721</td><td>${escapeHtml(r.transactionHash)}</td></tr>`).join('');
   }
 
   /* ---------------- boot ---------------- */
 
   function reset() {
-    state.owner = {};
-    PIECES.forEach(p => state.owner[p.id] = 'alice');
     state.selected = null; state.listing = null; state.qrPayload = null;
     state.scanned = null; state.stage = 'idle'; state.channel = 'chain';
-    state.price = 1500; state.lightening = 70; state.ledger = [];
+    state.txHash = null; state.transferError = null;
+    state.price = 1500; state.lightening = 70;
     showView('portal');
   }
 
-  window.addEventListener('load', () => {
-    $('aliceEoa').textContent = ADDR.alice;
-    $('aliceDid').textContent = collectorDid(ADDR.alice);
-    $('bobEoa').textContent   = ADDR.bob;
-    $('bobDid').textContent   = collectorDid(ADDR.bob);
+  function ownerLabel(address) {
+    if (ADDR.alice && address.toLowerCase() === ADDR.alice.toLowerCase()) return 'Artist Alice';
+    if (ADDR.bob && address.toLowerCase() === ADDR.bob.toLowerCase()) return 'Collector Bob';
+    return shorten(address);
+  }
 
-    document.querySelectorAll('.rs-portal-card').forEach(b =>
-      b.addEventListener('click', () => showView(b.dataset.view)));
+  function showChainStatus(message, type, txHash) {
+    const status = $('chainStatus');
+    status.className = 'rs-chain-status' + (type === 'error' ? ' error' : type === 'success' ? ' success' : '');
+    status.replaceChildren();
+    status.hidden = false;
+    if (type === 'pending') {
+      const spinner = document.createElement('span');
+      spinner.className = 'rs-chain-spinner';
+      status.appendChild(spinner);
+    }
+    const text = document.createElement('span');
+    text.textContent = message + (txHash ? ' Transaction hash: ' : '');
+    status.appendChild(text);
+    if (txHash) {
+      const link = document.createElement('a');
+      link.href = 'https://quantumbesu.web.app/quantumbesu.html?transaction=' + encodeURIComponent(txHash);
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.textContent = txHash;
+      status.appendChild(link);
+    }
+  }
+
+  async function refreshChainState() {
+    const [health, collectorResponse, artworkResponse, ledgerResponse] = await Promise.all([
+      ArtIDChain.health(),
+      ArtIDChain.collectors(),
+      ArtIDChain.artworks(),
+      ArtIDChain.ledger()
+    ]);
+    if (health.chainId !== Number(ARTID_CONFIG.chainId)) {
+      throw new Error('Connected network does not match the configured qBESU network.');
+    }
+    state.collectors = collectorResponse.collectors;
+    state.accounts = {};
+    for (const profile of profiles) {
+      if (isConnected(profile)) {
+        const account = await ArtIDChain.wallet(profile);
+        const record = state.collectors.find(item => item.address.toLowerCase() === account.address.toLowerCase());
+        state.accounts[profile] = Object.assign(account, record || {});
+        ADDR[profile] = account.address;
+      } else {
+        ADDR[profile] = '';
+      }
+    }
+    state.artworks = artworkResponse.artworks.map((art, index) => Object.assign({}, art, {
+      id: art.artworkId,
+      erc721: art.address,
+      art: art.imageURI
+    }));
+    state.ledger = ledgerResponse.transfers;
+    const latestTransferByArtwork = new Map();
+    state.ledger.forEach(transfer => {
+      if (!latestTransferByArtwork.has(transfer.artwork.toLowerCase())) {
+        latestTransferByArtwork.set(transfer.artwork.toLowerCase(), transfer.transactionHash);
+      }
+    });
+    state.artworks.forEach(artwork => {
+      artwork.transferTxHash = latestTransferByArtwork.get(artwork.erc721.toLowerCase()) || null;
+    });
+    if (state.selected && !state.artworks.some(artwork =>
+      artwork.id === state.selected.id && artwork.listed
+    )) {
+      state.selected = null;
+      state.listing = null;
+      state.qrPayload = null;
+    }
+    for (const profile of profiles) {
+      const account = state.accounts[profile];
+      $(profile + 'Eoa').textContent = account ? account.address : 'Wallet locked';
+    }
+    renderCollector('alice');
+    renderCollector('bob');
+    updatePortalWallet('alice');
+    updatePortalWallet('bob');
+    if (state.view === 'alice') { renderCollection(); renderSellerListing(); }
+    if (state.view === 'bob') { renderBobFolder(); renderBuyer(); }
+    if (state.view === 'registry') { renderRegistry(); renderLedger(); }
+  }
+
+  async function refreshPublicRegistry() {
+    const button = $('refreshChainBtn');
+    button.disabled = true;
+    showChainStatus('Loading public registry data from qBESU.', 'pending');
+    try {
+      await refreshChainState();
+      showChainStatus('Public registry data loaded from qBESU.', 'success');
+    } catch (error) {
+      showChainStatus('Could not load public registry data: ' + error.message, 'error');
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  function renderCollector(profile) {
+    const account = state.accounts[profile];
+    const button = $(profile + 'Register');
+    const saveButton = $(profile + 'SaveMetadata');
+    const did = $(profile + 'Did');
+    const toggle = $(profile + 'CollectorListingToggle');
+    const actions = $(profile + 'WalletActions');
+    if (!account || !button) {
+      did.textContent = 'Unlock wallet to load collector details';
+      $('aliceMetadataHistory').replaceChildren();
+      $('bobMetadataHistory').replaceChildren();
+      return;
+    }
+    button.hidden = account.registered;
+    button.disabled = Boolean(state.collectorRegistering);
+    button.textContent = state.collectorRegistering === profile ? 'Registering…' : 'Register collector';
+    saveButton.hidden = !account.registered;
+    saveButton.disabled = Boolean(state.collectorRegistering) || !account.listed;
+    $(profile + 'DisplayName').value = account.displayName || profileName(profile);
+    $(profile + 'DisplayName').disabled = account.registered && !account.listed;
+    $(profile + 'MetadataURI').value = account.metadataURI || '';
+    $(profile + 'MetadataURI').disabled = account.registered && !account.listed;
+    $(profile + 'MetadataEntry').hidden = !account.registered;
+    did.innerHTML = account.registered
+      ? transactionLink(account.registrationTxHash, account.did)
+      : 'Not registered';
+    $(profile + 'ListingStatus').textContent = account.registered
+      ? account.listed ? 'Listed' : 'Unlisted'
+      : 'Not registered';
+    $(profile + 'ListingStatus').classList.toggle('is-unlisted-label', account.registered && !account.listed);
+    toggle.hidden = !account.registered;
+    toggle.disabled = Boolean(state.collectorRegistering);
+    toggle.textContent = account.listed ? 'Unlist collector' : 'List collector';
+    $(profile + 'UnlistedNotice').hidden = !account.registered || account.listed;
+    if (actions) {
+      const enabled = account.registered && account.listed;
+      actions.classList.toggle('is-inactive', !enabled);
+      actions.setAttribute('aria-disabled', String(!enabled));
+      actions.querySelectorAll('button,input,select').forEach(control => { control.disabled = !enabled; });
+    }
+    renderMetadataHistory(profile, account.metadataHistory || []);
+  }
+
+  function renderMetadataHistory(profile, history) {
+    const container = $(profile + 'MetadataHistory');
+    container.replaceChildren();
+    if (!history.length) return;
+    const heading = document.createElement('strong');
+    heading.textContent = 'Collector metadata history';
+    container.appendChild(heading);
+    history.forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'rs-metadata-history-item';
+      const detail = document.createElement('span');
+      detail.textContent = [item.displayName, item.metadataURI].filter(Boolean).join(' · ') || 'Metadata saved';
+      row.appendChild(detail);
+      const link = document.createElement('a');
+      link.href = 'https://quantumbesu.web.app/quantumbesu.html?transaction=' + encodeURIComponent(item.transactionHash);
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.textContent = item.transactionHash;
+      row.appendChild(link);
+      container.appendChild(row);
+    });
+  }
+
+  async function registerCollector(profile) {
+    state.collectorRegistering = profile;
+    renderCollector(profile);
+    try {
+      const displayName = $(profile + 'DisplayName').value.trim();
+      if (!displayName) throw new Error('Collector display name is required.');
+      const metadataURI = $(profile + 'MetadataURI').value.trim();
+      const result = await ArtIDChain.registerCollector(profile, displayName, metadataURI);
+      showChainStatus('Collector registration submitted—waiting for qBESU.', 'pending', result.txHash);
+      const receipt = await ArtIDChain.waitForReceipt(result.txHash, () => {
+        showChainStatus('Collector registration submitted—waiting for a qBESU block.', 'pending', result.txHash);
+      });
+      if (receipt.status !== 'confirmed') throw new Error('Collector registration failed on qBESU.');
+      await refreshChainState();
+      showChainStatus('Collector registered: ' + state.accounts[profile].did, 'success', result.txHash);
+    } catch (error) {
+      showChainStatus(error.message, 'error');
+    } finally {
+      state.collectorRegistering = null;
+      renderCollector(profile);
+    }
+  }
+
+  async function updateCollector(profile) {
+    state.collectorRegistering = profile;
+    renderCollector(profile);
+    try {
+      const account = state.accounts[profile];
+      const displayName = $(profile + 'DisplayName').value.trim();
+      if (!displayName) throw new Error('Collector display name is required.');
+      const metadataURI = $(profile + 'MetadataURI').value.trim();
+      const result = await ArtIDChain.updateCollector(profile, displayName, metadataURI);
+      showChainStatus('Collector metadata update submitted—waiting for qBESU.', 'pending', result.txHash);
+      const receipt = await ArtIDChain.waitForReceipt(result.txHash, () => {
+        showChainStatus('Collector metadata update submitted—waiting for a qBESU block.', 'pending', result.txHash);
+      });
+      if (receipt.status !== 'confirmed') throw new Error('Collector metadata update failed on qBESU.');
+      await refreshChainState();
+      showChainStatus('Collector metadata updated.', 'success', result.txHash);
+    } catch (error) {
+      showChainStatus(error.message, 'error');
+    } finally {
+      state.collectorRegistering = null;
+      renderCollector(profile);
+    }
+  }
+
+  async function setCollectorListing(profile, listed) {
+    state.collectorRegistering = profile;
+    renderCollector(profile);
+    try {
+      const result = await ArtIDChain.setCollectorListed(profile, listed);
+      showChainStatus('Collector listing update submitted—waiting for qBESU.', 'pending', result.txHash);
+      const receipt = await ArtIDChain.waitForReceipt(result.txHash, () => {
+        showChainStatus('Collector listing update submitted—waiting for a qBESU block.', 'pending', result.txHash);
+      });
+      if (receipt.status !== 'confirmed') throw new Error('Collector listing update failed on qBESU.');
+      await refreshChainState();
+      showChainStatus(profileName(profile) + (listed ? ' listed.' : ' unlisted.'), 'success', result.txHash);
+    } catch (error) {
+      showChainStatus(error.message, 'error');
+    } finally {
+      state.collectorRegistering = null;
+      renderCollector(profile);
+    }
+  }
+
+  async function setArtworkListing(artwork, profile, listed) {
+    state.listingUpdating = artwork.erc721;
+    if (state.view === 'registry') renderRegistry();
+    try {
+      const result = await ArtIDChain.setArtworkListed(artwork.erc721, profile, listed);
+      showChainStatus('Artwork listing update submitted—waiting for qBESU.', 'pending', result.txHash);
+      const receipt = await ArtIDChain.waitForReceipt(result.txHash, () => {
+        showChainStatus('Artwork listing update submitted—waiting for a qBESU block.', 'pending', result.txHash);
+      });
+      if (receipt.status !== 'confirmed') throw new Error('Artwork listing update failed on qBESU.');
+      await refreshChainState();
+      showChainStatus(artwork.title + (listed ? ' listed.' : ' unlisted.'), 'success', result.txHash);
+    } catch (error) {
+      showChainStatus(error.message, 'error');
+    } finally {
+      state.listingUpdating = null;
+      if (state.view === 'registry') renderRegistry();
+    }
+  }
+
+  async function createArtwork() {
+    const metadata = {
+      artworkId: $('artworkIdInput').value.trim(),
+      title: $('artworkTitleInput').value.trim(),
+      artist: $('artworkArtistInput').value.trim(),
+      imageURI: $('artworkImageInput').value.trim(),
+      contentHash: $('artworkHashInput').value.trim()
+    };
+    if (!metadata.artworkId || !metadata.title) {
+      const input = !metadata.artworkId ? $('artworkIdInput') : $('artworkTitleInput');
+      input.setCustomValidity('This field is required.');
+      input.reportValidity();
+      input.focus();
+      return;
+    }
+    $('artworkIdInput').setCustomValidity('');
+    $('artworkTitleInput').setCustomValidity('');
+    $('createArtworkBtn').disabled = true;
+    try {
+      const creatorProfile = $('creatorProfile').value;
+      const creator = state.accounts[creatorProfile];
+      if (!isConnected(creatorProfile) || !creator || !creator.registered || !creator.listed) {
+        throw new Error('Unlock a registered, listed collector wallet to create artwork data.');
+      }
+      const result = await ArtIDChain.createArtwork(creatorProfile, metadata);
+      showChainStatus('Artwork deployment submitted—waiting for qBESU.', 'pending', result.txHash);
+      const receipt = await ArtIDChain.waitForReceipt(result.txHash, () => {
+        showChainStatus('Artwork deployment submitted—waiting for a qBESU block. Blocks may take about a minute.', 'pending', result.txHash);
+      });
+      if (receipt.status !== 'confirmed') throw new Error('Artwork creation failed on qBESU.');
+      await refreshChainState();
+      $('artworkIdInput').value = '';
+      $('artworkTitleInput').value = '';
+      $('artworkArtistInput').value = '';
+      $('artworkImageInput').value = '';
+      $('artworkHashInput').value = '';
+      showChainStatus('Artwork registered on qBESU.', 'success', result.txHash);
+    } catch (error) {
+      showChainStatus(error.message, 'error');
+    } finally {
+      $('createArtworkBtn').disabled = false;
+    }
+  }
+
+  function previewArtwork() {
+    const imageURI = $('artworkImageInput').value.trim();
+    const image = $('previewImage');
+    image.removeAttribute('src');
+    if (imageURI) {
+      const source = displayImageUrl(imageURI);
+      if (!/^https:\/\//i.test(source)) {
+        showChainStatus('Preview image must use an HTTPS URL.', 'error');
+        return;
+      }
+      image.src = source;
+    }
+    $('previewTitle').textContent = $('artworkTitleInput').value.trim() || 'Untitled artwork';
+    $('previewArtist').textContent = 'Artist: ' + ($('artworkArtistInput').value.trim() || 'Artist not specified');
+    $('previewArtworkId').textContent = 'Artwork ID: ' + ($('artworkIdInput').value.trim() || 'Artwork ID not specified');
+    $('previewImageURI').textContent = imageURI ? 'Image: ' + imageURI : 'No image URI provided.';
+    $('artworkPreviewDialog').showModal();
+  }
+
+  window.addEventListener('load', () => {
+    profiles.forEach(profile => {
+      $(profile + 'PinForm').addEventListener('submit', event => {
+        event.preventDefault();
+        connectWallet(profile, event.currentTarget);
+      });
+      $(profile + 'OpenBtn').addEventListener('click', () => showView(profile));
+      $(profile + 'CollectorListingToggle').addEventListener('click', () => {
+        const account = state.accounts[profile];
+        if (account) setCollectorListing(profile, !account.listed);
+      });
+    });
+    $('lockWalletBtn').addEventListener('click', () => {
+      ArtIDChain.lock();
+      state.accounts = {};
+      ADDR.alice = '';
+      ADDR.bob = '';
+      $('lockWalletBtn').hidden = true;
+      updatePortalWallet('alice');
+      updatePortalWallet('bob');
+      showView('portal');
+      showChainStatus('Wallet sessions locked. Re-enter each ICCHSM wallet PIN to reconnect.', 'success');
+    });
+    $('openRegistryBtn').addEventListener('click', () => showView('registry'));
     $('backBtn').addEventListener('click', () => showView('portal'));
     $('brandHome').addEventListener('click', () => showView('portal'));
     $('rsReset').addEventListener('click', reset);
+    $('aliceRegister').addEventListener('click', () => registerCollector('alice'));
+    $('bobRegister').addEventListener('click', () => registerCollector('bob'));
+    $('aliceSaveMetadata').addEventListener('click', () => updateCollector('alice'));
+    $('bobSaveMetadata').addEventListener('click', () => updateCollector('bob'));
+    $('createArtworkBtn').addEventListener('click', createArtwork);
+    $('previewArtworkBtn').addEventListener('click', previewArtwork);
+    $('refreshChainBtn').addEventListener('click', refreshPublicRegistry);
 
     reset();
-
-    // Paintings decode asynchronously; refresh once they are in.
-    Artworks.preload().then(function () {
-      PIECES.forEach(function (p) {
-        p.art = Artworks.background(p.key);
-        var lbl = Artworks.label(p.key);
-        if (lbl) {
-          if (lbl.title)  p.title  = lbl.title;
-          if (lbl.artist) p.artist = lbl.artist;
-        }
-      });
-      if (state.view === 'alice')    { renderCollection(); renderSellerListing(); }
-      if (state.view === 'bob')      { renderBobFolder(); }
-      if (state.view === 'registry') { renderRegistry(); }
-    });
+    showView('registry');
+    refreshPublicRegistry();
   });
 </script>
 

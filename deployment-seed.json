@@ -1,0 +1,102 @@
+{
+  "network": {
+    "name": "qBESU",
+    "chainId": 1337,
+    "contractVersion": "v2",
+    "deploymentRequired": false,
+    "registryAddress": "0x8DFA147Aa00a4fe3a5895835eA78FeC7218aCA4a",
+    "registryDeploymentBlock": 611533,
+    "factoryAddress": "0x8c1171d964159907cbFf502E83B6718d7547771f",
+    "factoryDeploymentBlock": 611534,
+    "notes": [
+      "The v2 collector registry and artwork factory are deployed; the seed records still need registration/creation transactions.",
+      "Do not use the immutable v1 contract addresses; those contracts do not support listing controls.",
+      "Artist Alice's ICCHSM slot was verified against her supplied EOA.",
+      "Collector Bob's configured slot resolved to 0xdd106493BAAc49828336d762AdA8a6031d286f06; this actual address is selected for Bob after user confirmation."
+    ]
+  },
+  "collectors": [
+    {
+      "profile": "alice",
+      "displayName": "Artist Alice",
+      "did": "did:art:collector:0x29f780c62f75dccc7ff6f43f7e319e4da870a3c7",
+      "eoa": "0x29F780C62F75DCCc7fF6f43f7e319E4da870a3C7",
+      "description": "A contemporary digital artist known for vibrant color palettes and innovative visual storytelling.",
+      "metadataURI": null,
+      "metadataURIStatus": "Publish this profile metadata as JSON to a stable HTTPS or IPFS location, then set the URI before registration."
+    },
+    {
+      "profile": "bob",
+      "displayName": "Collector Bob",
+      "did": "did:art:collector:0xdd106493baac49828336d762ada8a6031d286f06",
+      "eoa": "0xdd106493BAAc49828336d762AdA8a6031d286f06",
+      "eoaResolutionStatus": "Resolved from Collector Bob's ICCHSM slot and accepted by user; differs from the previously supplied address.",
+      "description": "An avid art collector who focuses on discovering and supporting emerging contemporary and digital artists.",
+      "metadataURI": null,
+      "metadataURIStatus": "Publish this profile metadata as JSON to a stable HTTPS or IPFS location, then set the URI before registration."
+    }
+  ],
+  "artworks": [
+    {
+      "artworkId": "did:art:artwork:0x1b0aced4cb055d2c85b7376a3d88f0ed33cc7e193813c882d828a0a6ab35c824",
+      "title": "The Scream",
+      "artist": "Edvard Munch",
+      "creatorProfile": "alice",
+      "creator": "0x29F780C62F75DCCc7fF6f43f7e319E4da870a3C7",
+      "imageURI": "https://raw.githubusercontent.com/shaheerfarid/QuantumatterWallet/refs/heads/main/images/art/scream.jpg",
+      "contentHash": "0x6906a5e3155d71bc40ec879cfdb7608965107eb598ef7b416113bb51af735191",
+      "contentHashMethod": "keccak256(UTF-8 imageURI)",
+      "description": "An expressionist scene of a solitary figure beneath a turbulent sky, centered on vivid color, movement, and psychological intensity.",
+      "metadataURI": null,
+      "metadataURIStatus": "Publish this artwork metadata JSON to a stable HTTPS or IPFS location; the current ArtIDArtwork contract does not store an artwork metadata URI or description."
+    },
+    {
+      "artworkId": "did:art:artwork:0x8383f525d848b12301488712585f1de6a7a0892432aadb1f47e2caa0bab43ef3",
+      "title": "The Great Wave",
+      "artist": "Katsushika Hokusai",
+      "creatorProfile": "alice",
+      "creator": "0x29F780C62F75DCCc7fF6f43f7e319E4da870a3C7",
+      "imageURI": "https://raw.githubusercontent.com/shaheerfarid/QuantumatterWallet/refs/heads/main/images/art/great-wave.jpg",
+      "contentHash": "0x9b399eaf74ff678c075bd33e0978ceb0833c18c59b22831cbb04cc4fd9b8dd4f",
+      "contentHashMethod": "keccak256(UTF-8 imageURI)",
+      "description": "A towering blue wave curls above small boats, balancing the force of the sea against the distant, quiet outline of Mount Fuji.",
+      "metadataURI": null,
+      "metadataURIStatus": "Publish this artwork metadata JSON to a stable HTTPS or IPFS location; the current ArtIDArtwork contract does not store an artwork metadata URI or description."
+    },
+    {
+      "artworkId": "did:art:artwork:0x20a599aeef8b8a3ef4a320e7410106202950c114c2923adc609c168372ed7254",
+      "title": "The Starry Night",
+      "artist": "Vincent van Gogh",
+      "creatorProfile": "alice",
+      "creator": "0x29F780C62F75DCCc7fF6f43f7e319E4da870a3C7",
+      "imageURI": "https://raw.githubusercontent.com/shaheerfarid/QuantumatterWallet/refs/heads/main/images/art/starry-night.jpg",
+      "contentHash": "0x14f14dcd189cd1c1af4501074e79ccd6797867cf5cd249533326409186ca1278",
+      "contentHashMethod": "keccak256(UTF-8 imageURI)",
+      "description": "A luminous night sky of sweeping blue forms and bright stars arches over a peaceful village and a dark, flame-like cypress.",
+      "metadataURI": null,
+      "metadataURIStatus": "Publish this artwork metadata JSON to a stable HTTPS or IPFS location; the current ArtIDArtwork contract does not store an artwork metadata URI or description."
+    },
+    {
+      "artworkId": "did:art:artwork:0x185ce5e69eba839de27403ae2648613f145a82a56d8583f41ee3b1b2ec6a0ffa",
+      "title": "Sunflowers",
+      "artist": "Vincent van Gogh",
+      "creatorProfile": "alice",
+      "creator": "0x29F780C62F75DCCc7fF6f43f7e319E4da870a3C7",
+      "imageURI": "https://raw.githubusercontent.com/shaheerfarid/QuantumatterWallet/refs/heads/main/images/art/sunflowers.jpg",
+      "contentHash": "0x3b161e302d2ad3b9405c594b6fad690e5022b29828ea230ef4e8286222e12acc",
+      "contentHashMethod": "keccak256(UTF-8 imageURI)",
+      "description": "A warm still life of sunflowers at different stages, using layered gold and ochre tones to give the arrangement a lively, tactile presence.",
+      "metadataURI": null,
+      "metadataURIStatus": "Publish this artwork metadata JSON to a stable HTTPS or IPFS location; the current ArtIDArtwork contract does not store an artwork metadata URI or description."
+    }
+  ],
+  "deploymentOrder": [
+    "Confirm the deployed v2 registry and factory addresses and deployment blocks in artid-config.js.",
+    "Confirm the Artist Alice ICCHSM slot resolves to the supplied Artist Alice EOA.",
+    "Register Artist Alice with her published profile metadata URI.",
+    "Confirm the Collector Bob ICCHSM slot resolves to the supplied Collector Bob EOA.",
+    "Register Collector Bob with his published profile metadata URI.",
+    "As Artist Alice, create the four artworks using the on-chain fields in this manifest.",
+    "Verify each receipt, artwork DID, metadata, owner, and initial listed status in the registry."
+  ]
+}

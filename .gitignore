@@ -3,3 +3,11 @@ images/art/local/*
 !images/art/local/README.md
 
 .DS_Store
+node_modules/
+artifacts/
+cache/
+coverage/
+.env
+.env.*
+!.env.example
+*.log

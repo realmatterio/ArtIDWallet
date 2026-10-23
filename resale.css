@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Articulator ID - peer-to-peer artwork resale (demo)
+   Cross Border Art ID Registry and Resale Service (demo)
 
    Standalone: this page carries its own design tokens and the two component
    styles it borrows, so it can be served on its own without the wallet's
@@ -124,6 +124,35 @@ body {
   flex-direction: column;
   gap: 18px;
 }
+
+.rs-chain-status {
+  position: sticky;
+  top: 8px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border: 1px solid rgba(43, 76, 140, 0.2);
+  border-radius: var(--radius-inner);
+  background: #f2f6ff;
+  color: #243b67;
+  box-shadow: var(--octo-shadow);
+  overflow-wrap: anywhere;
+}
+.rs-chain-status[hidden] { display: none; }
+.rs-chain-status.error { background: #fff1f0; color: #8f2424; border-color: rgba(143, 36, 36, 0.2); }
+.rs-chain-status.success { background: #effaf3; color: #205b36; border-color: rgba(32, 91, 54, 0.2); }
+.rs-chain-spinner {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: rs-spin 0.8s linear infinite;
+}
+@keyframes rs-spin { to { transform: rotate(360deg); } }
 
 @media (min-width: 980px) {
 }
@@ -471,7 +500,7 @@ body {
   .rs-compare { grid-template-columns: minmax(0, 0.5fr) auto minmax(0, 1fr); padding: 18px; }
 }
 
-/* Alice's inventory spans both columns; the code pane and the buyer then sit
+/* Artist Alice's inventory spans both columns; the code pane and collector then sit
    level with each other, which is the comparison worth seeing. */
 @media (min-width: 980px) {
 
@@ -571,6 +600,51 @@ body {
   line-height: 1.6;
   max-width: 54ch;
   margin: 0 auto 30px;
+}
+
+.rs-pin-form {
+  max-width: 560px;
+  margin: 0 auto 28px;
+  padding: 20px;
+  text-align: left;
+  background: var(--octo-paper);
+  border: 1px solid var(--octo-hairline);
+  border-radius: var(--radius-card);
+  box-shadow: var(--octo-shadow);
+}
+
+.rs-pin-form label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--octo-ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.rs-pin-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.rs-pin-row .btn-primary {
+  width: auto;
+  padding: 12px 18px;
+  white-space: nowrap;
+}
+
+.rs-pin-form p,
+.rs-pin-form span {
+  display: block;
+  margin-top: 10px;
+  color: var(--octo-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.rs-pin-row button:disabled {
+  cursor: wait;
+  opacity: 0.65;
 }
 
 .rs-portal-grid {
@@ -722,7 +796,7 @@ body {
    single 142px column. */
 .rs-collection .rs-empty { grid-column: 1 / -1; }
 
-/* Alice's pane is full width now that each role has its own screen, so the
+/* Artist Alice's pane is full width now that each role has its own screen, so the
    artwork/code comparison needs a ceiling or the code renders ~730px wide. */
 #sellerListing .rs-compare,
 #sellerListing .rs-payload,
@@ -935,4 +1009,79 @@ body {
   .rs-topbtn { padding: 8px 11px; font-size: 11px; }
   .rs-portal-grid { gap: 10px; }
   .rs-portal-card { min-height: 0; padding: 17px; }
+}
+
+/* --- wallet profiles and registry redesign ------------------------------- */
+.rs-portal-wallet {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  padding: 20px;
+  border: 2px solid #b3261e;
+  border-radius: 10px;
+  background: var(--octo-paper);
+}
+.rs-portal-wallet.is-unlocked { border-color: #1c7a52; }
+.rs-portal-wallet .rs-portal-description { margin: 0; }
+.rs-portal-status-icon { margin-left: 4px; }
+.rs-pin-form { width: 100%; }
+.rs-pin-form label { display: block; margin-bottom: 6px; font-size: 12px; font-weight: 600; }
+.rs-pin-row { display: flex; gap: 8px; }
+.rs-pin-row .input-field { min-width: 0; flex: 1; }
+.rs-pin-row .btn-primary { width: auto; margin: 0; padding: 10px 16px; }
+.rs-portal-wallet.is-unlocked .rs-pin-row .btn-primary,
+.rs-portal-wallet.is-unlocked .rs-open-wallet,
+.rs-open-registry {
+  border-color: #1c7a52;
+  background: #1c7a52;
+  color: #fff;
+}
+.rs-portal-wallet.is-unlocked .rs-pin-row .btn-primary:hover,
+.rs-portal-wallet.is-unlocked .rs-open-wallet:hover,
+.rs-open-registry:hover { background: #176642; }
+.rs-open-wallet:disabled {
+  border-color: #d2d0cd;
+  background: #e6e4e1;
+  color: #85817c;
+  cursor: not-allowed;
+}
+.rs-open-wallet:disabled:hover { background: #e6e4e1; }
+.rs-registry-card { border-color: #1c7a52; }
+.rs-open-registry { margin-top: auto; cursor: pointer; }
+.rs-wallet-actions.is-inactive { opacity: .48; }
+.rs-wallet-actions.is-inactive .rs-pane { filter: grayscale(1); }
+.rs-metadata-entry { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.rs-metadata-entry .input-field { min-width: 0; flex: 1; }
+.rs-metadata-history { display: grid; gap: 8px; margin-top: 10px; }
+.rs-metadata-history-item { display: grid; gap: 4px; padding: 9px 10px; background: var(--octo-cream); border-radius: 6px; }
+.rs-metadata-history-item a, .rs-regtable a { overflow-wrap: anywhere; }
+.rs-listing-status { display: inline-flex; width: fit-content; margin: 5px 0; font-size: 12px; font-weight: 700; color: #1c7a52; }
+.rs-listing-status.is-unlisted-label { color: #b3261e; }
+.rs-unlisted-notice { margin: 12px 0; padding: 12px; border: 1px solid rgba(179,38,30,.3); border-radius: 8px; color: #9b201a; background: rgba(179,38,30,.06); }
+.rs-piece.is-unlisted { background: #e4e1dc; filter: grayscale(1); cursor: not-allowed; }
+.rs-piece.is-unlisted .rs-thumb { opacity: .5; }
+.rs-thumb { aspect-ratio: 1 / 1; overflow: hidden; }
+.rs-thumb img, .rs-reg-thumb { display: block; width: 100%; height: 100%; object-fit: cover; }
+.rs-regtable { min-width: 760px; width: 100%; border-collapse: collapse; }
+.rs-regtable th, .rs-regtable td { padding: 10px 12px; border-bottom: 1px solid var(--octo-hairline); text-align: left; vertical-align: middle; }
+.rs-regtable th { font-size: 10.5px; color: var(--octo-label); text-transform: uppercase; }
+.rs-regtable td { font-size: 11.5px; font-family: var(--font-mono); }
+.rs-regtable td em { display: block; margin-top: 4px; font-size: 10px; font-style: normal; }
+.rs-reg-art { display: flex; align-items: center; gap: 9px; max-width: 260px; white-space: normal; }
+.rs-reg-thumb { flex: none; width: 52px; height: 52px; border-radius: 6px; object-fit: cover; }
+.rs-reg-art span { display: grid; gap: 3px; min-width: 0; }
+.rs-reg-art b { font-family: var(--font-ui); }
+.rs-is-unlisted-row, .is-unlisted-row { background: #eee; color: #777; }
+.rs-footer { padding: 24px 16px; text-align: center; font-size: 12px; color: var(--octo-muted); }
+.rs-footer a { color: inherit; }
+.rs-preview-dialog { width: min(92vw, 520px); max-height: 90vh; overflow: auto; border: 1px solid var(--octo-hairline); border-radius: 12px; padding: 20px; color: var(--octo-ink); background: var(--octo-paper); }
+.rs-preview-dialog::backdrop { background: rgba(20, 16, 12, .62); }
+.rs-preview-dialog form { position: absolute; top: 8px; right: 10px; }
+.rs-preview-close { border: 0; background: none; font-size: 26px; cursor: pointer; }
+.rs-preview-image { display: block; width: min(100%, 360px); aspect-ratio: 1 / 1; margin: 12px auto; object-fit: cover; background: var(--octo-cream); }
+.rs-chain-status a { color: inherit; overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+  .rs-pin-row, .rs-metadata-entry { align-items: stretch; flex-direction: column; }
 }

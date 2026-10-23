@@ -1,0 +1,6 @@
+{
+	"user": {"CKA_LABEL": "Bob"},
+	"slot": {"CKA_ID": "53897302"},
+	"did": {"CKA_APPLICATION": "did-rm-0-5002"},
+	"loginpassword": {"CKA_VALUE": "2345"}
+}

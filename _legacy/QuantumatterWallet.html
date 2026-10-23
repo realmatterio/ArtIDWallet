@@ -1,0 +1,2454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quantumatter Wallet - Quantum-Safe Crypto Wallet</title>
+  <link rel="stylesheet" href="QuantumatterWallet.css">
+  <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.min.js"></script>
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- div class="device-frame">
+      <div class="screen">
+        <div class="status-bar">
+          <div class="status-left">
+            <span>13:33</span>
+          </div>
+          <div class="status-right">
+            <span>99%</span>
+            <span>🔋</span>
+          </div>
+        </div>
+        
+        <div class="app-container">
+
+        </div>
+        
+        <div class="home-indicator"></div>
+      </div>
+    </div -->
+    
+    <!-- When not in landscape, content goes directly in app-wrapper -->
+    <div class="app-container">
+
+  <!-- Mandatory Login Modal -->
+  <div class="modal" id="loginModal" style="display: flex;">
+    <div class="modal-content">
+      <h3>User Login</h3>
+      <input type="text" class="input-field" id="userAccountInput" placeholder="User [Alice]">
+      <input type="password" class="input-field" id="loginPasswordInput" placeholder="Login [2345]">
+      <button class="btn-primary" id="loginSubmitBtn">Login</button>
+      <div id="loginError" style="color: #e53e3e; font-size: 14px; margin-top: 10px; display: none;">Invalid login credentials</div>
+    </div>
+  </div>
+
+  <!-- Top Buttons -->
+  <div class="top-buttons">
+    <button class="round-btn" id="scanBtn">𝄃𝄃𝄂𝄂𝄀𝄁</button>
+    <button class="round-btn" id="setupBtn">⚙️</button>
+  </div>
+
+  <!-- Account Page -->
+  <div class="page active" id="accountPage">
+    <div class="logo-container">
+      <img src="./images/LogoQuantumatterWallet.png" alt="Quantumatter Wallet" class="logo" 
+           onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+      <div class="logo-fallback" style="display:none;">Quantumatter Wallet</div>
+    </div>
+    
+    <!-- Status Section -->
+    <div class="section">
+      <div class="section-title">QUANTUM-SAFE STATUS</div>
+      <div class="status-container">
+        <div class="status-item">
+          <div class="status-light" id="blockchainLight"></div>
+          <div class="status-label">Blockchain</div>
+        </div>
+        <div class="status-item">
+          <div class="status-light" id="walletLight"></div>
+          <div class="status-label">Wallet</div>
+        </div>
+      </div>  
+    </div>
+
+    <!-- Login Section -->
+    <div class="section" style="background-color: rgb(20, 1, 19)">
+      <div style="text-align: center; margin: 12px; color: #4a5568; font-weight: 600;">
+        <div style="margin-top:24px; margin-bottom:5px; font-size: 16px;">Tap the HSM Keycard</div>
+        <div style="margin-bottom:5px; color: #a0aec0; font-size: 10px;">◀ ◀ ◀ OR ▶ ▶ ▶</div>
+        <div style="margin-bottom:24px; font-size: 16px;">Enter the Demo Passkey</div>
+      </div>
+      <input type="password" class="input-field" id="passkeyInput" placeholder="Enter One-Time [4321]" maxlength="10">
+      <button class="btn-primary" id="loginBtn">Access Quantum-Safe Wallet</button>
+    </div>
+
+    <button class="scroll-btn scroll-down" id="scrollDown1" style="display:none;">↓</button>
+  </div>
+
+  <!-- Balance Page -->
+  <div class="page" id="balancePage">
+    <!-- Big Reload Button (replaces the static section) -->
+    <button class="reload-btn" id="reloadBalancesBtn">
+      <div class="section-title" id="portfolioTitle">Total Portfolio</div>
+      <div class="portfolio-header">
+        <div class="cash-amount" id="totalCashValue">$0.00</div>
+        <div class="cash-currency" id="selectedCurrency">Loading...</div>
+      </div>
+      <div class="reload-indicator">↻ Tap to Reload Balances</div>
+    </button>
+
+    <!-- Action Buttons - NO SECTION BOX -->
+    <div class="action-buttons">
+      <button class="action-btn receive" id="receiveBtn">
+        <span>📥</span>
+        <span>Receive</span>
+      </button>
+      <button class="action-btn deposit" id="depositBtn" disabled>
+        <span>💰</span>
+        <span>Deposit</span>
+      </button>
+      <button class="action-btn pay" id="payBtn">
+        <span>💸</span>
+        <span>Pay</span>
+      </button>
+    </div>
+
+    <div class="section">
+      <div class="section-title">CURRENT ACCOUNTS</div>
+      <div class="crypto-selector" id="currentAccountsSelector">
+        <!-- USDCq and ETHq will be populated here -->
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">SAVING ACCOUNTS</div>
+      <div class="crypto-selector" id="savingAccountsSelector">
+        <!-- Ethereum, Bitcoin, Solana will be populated here -->
+      </div>
+    </div>
+
+    <button class="scroll-btn scroll-up" id="scrollUp2">↑</button>
+    <button class="scroll-btn scroll-down" id="scrollDown2" style="display:none;">↓</button>
+  </div>
+
+  <!-- Transaction Page -->
+  <div class="page" id="transactionPage">
+    <div class="section" id="txSectionHeader">
+      <div class="tx-header" id="txHeader">
+        <!-- Swap: Balance big, Cash value small -->
+        <div class="tx-crypto-name" id="selectedCryptoName">Select Cryptocurrency</div>
+        <div class="tx-details" id="walletAddress">Wallet Address</div>
+        <div class="tx-balance" id="walletBalance">Balance</div>
+        <div class="tx-cash-value-small" id="cashValueDisplay">$0.00</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Amount for Recipient</div>
+      <div class="input-with-unit">
+        <input type="number" class="input-field" id="sendAmount" placeholder="Enter Send Amount" step="0.000001">
+        <span class="input-unit" id="amountUnit">ETH</span>
+      </div>
+      <input type="text" class="input-field" id="recipientAddress" placeholder="Enter recipient address">
+    </div>
+
+    <div class="tx-buttons">
+      <!-- button class="tx-btn gas" id="gasBtn">GAS></button>
+      <button class="tx-btn sign" id="signBtn">SIGN></button>
+      <button class="tx-btn send" id="sendBtn">SEND></button -->
+      <button class="tx-btn gas" id="gasBtn">
+        <span>⛽</span>
+        <span>Gas</span>
+      </button>  
+      <button class="tx-btn sign" id="signBtn">
+        <span>✍🏻</span>
+        <span>Sign</span>
+      </button>  
+      <button class="tx-btn send" id="sendBtn">
+        <span>💸</span>
+        <span>Send</span>
+      </button>  
+    </div>
+
+    <div class="gas-fields" id="gasFields">
+      <!-- Populated by JavaScript based on selected crypto -->
+    </div>
+
+    <div class="console-log" id="transactionLog"></div>
+
+    <button class="scroll-btn scroll-up" id="scrollUp3">↑</button>
+    <button class="scroll-btn scroll-down" id="scrollDown3" style="display:none;">↓</button>
+  </div>
+
+  <!-- Proof Page -->
+  <div class="page" id="proofPage">
+    <div class="section">
+      <div class="section-title">Transaction Details</div>
+      <div id="proofStatusIcon" style="text-align:center; margin-bottom: 10px;"></div>
+      <div class="proof-details" id="proofDetails">
+        <!-- Populated by JavaScript -->
+      </div>
+    </div>
+
+    <div class="section">
+      <button class="btn-primary" id="listenBtn">Listen to Quantum Proof</button>  
+    </div>
+
+    <div class="blockchain-console" id="blockchainConsole">
+      <div style="color: #00ffe7; font-weight: bold; margin-bottom: 10px;">Blockchain Activity Console Log</div>
+    </div>
+
+    <button class="scroll-btn scroll-up" id="scrollUp4">↑</button>
+  </div>
+
+  <!-- Modals -->
+  <div class="modal" id="scanModal">
+    <div class="modal-content">
+      <h3>QR Code Scanner</h3>
+      <button class="btn-primary" onclick="startCameraScan()">Scan with Camera</button>
+      <button class="btn-primary" onclick="document.getElementById('fileInput').click()">Select PNG File</button>
+      <input type="file" id="fileInput" accept="image/png" style="display:none;">
+      <div id="selectedImagePreview" style="margin:15px 0; text-align:center;"></div>
+      <button class="btn-primary" id="saveRecipientBtn" style="display:none;">Save Address</button>
+      <button class="btn-primary" onclick="closeScanModal()">Close</button>
+    </div>
+  </div>
+
+  <div class="modal" id="setupModal">
+    <div class="modal-content">
+      <h3>Wallet Setup</h3>
+      <input type="text" class="input-field" id="userNameInput" placeholder="User Name" value="Alice">
+      <input type="number" class="input-field" id="slotInput" placeholder="SLOT Number" value="53897301">
+      <input type="text" class="input-field" id="didInput" placeholder="DID Number" value="did-rm-0-5001">
+      <select class="input-field" id="themeSelect">
+        <option value="theme-default">Default (Blue/Gray)</option>
+        <option value="theme-lightgreen">Light Green</option>
+        <option value="theme-lightyellow">Light Yellow</option>
+        <option value="theme-lightpink">Light Pink</option>
+      </select>
+      <button class="btn-primary" id="generateKycBtn">Save and KYC</button>
+      <div id="kycLink" style="display: flex; justify-content: center; align-items: center; height: 100%;"></div>
+      <input type="text" class="input-field" placeholder="PQC-SSL Certificate (Next Version)" disabled>
+      <input type="text" class="input-field" placeholder="Session Key (Next Version)" disabled>
+      <button class="btn-primary" onclick="closeSetupModal()">Close</button>
+    </div>
+  </div>
+
+  <div class="modal" id="qrModal">
+    <div class="modal-content">
+      <h3>Receive <span id="qrCryptoName">USDCq</span></h3>
+      <canvas id="qrCanvas" style="margin: 20px auto; display: block; border-radius: 10px;"></canvas>
+      <div style="text-align: center; font-size: 12px; word-break: break-all; margin: 10px 0;" id="qrAddress"></div>
+      <button class="btn-primary" onclick="closeQrModal()">Close</button>
+    </div>
+  </div>
+
+  <div class="modal" id="passkeyModal" style="display: none;">
+    <div class="modal-content">
+      <h3>Two-Factor Authentication</h3>
+      <p>You will receive a one-time passkey through your registered email or SMS.</p>
+      <div class="modal-buttons" style="margin-top: 12px;">
+        <button class="btn-primary" id="sendPasskeyBtn">Request one-time passkey</button>
+        <button class="btn-primary" id="cancelPasskeyBtn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer with Besu API URL -->
+  <footer style="text-align: center; margin-top: 20px; font-size: 0.75em; color: #888;">
+    Besu API URL: <span style="font-family: 'Fira Mono', monospace;">https://us-central1-quantumatterwallet.cloudfunctions.net/besupost'</span>
+  </footer>  
+
+  <script>   
+    // Global Constants
+    
+    //const BESU_172162391_8545 = 'http://172.16.239.1:8545'; 
+    const ABI_USDCQ = './USDCq_ABI.json';
+    const URL_BESU_API = 'https://us-central1-quantumatterwallet.cloudfunctions.net/besupost'; // == API_ENDPOINTS.besu
+    //const URL_BESU_API = 'http://localhost:8545'; // == API_ENDPOINTS.besu
+    const URL_PROXYICCHSMATTER = "https://us-central1-ironcapmatter.cloudfunctions.net";
+    //const URL_ICCHSMATTER = "http://127.0.0.1:5000";
+    const URL_CHAINLENS = "http://127.0.0.1:3000"
+    const URL_PRICE_FEED = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana,usd-coin&vs_currencies=usd&x_cg_demo_api_key=CG-gkTQqXbSiyFSbMGHWPGLG51K";
+    const ADDRESS_USDCQ_CONTRACT = "0x229aCcf70c4B4403670a5d0643e5A67Fd38c014d"; // GCP besu20250620
+    const ADDRESS_MINER_CONTRACT = "0x8a03Cd8Fdb225Fe1A74e94C3b6d193F3ABAE52D5"; // GCP besu20250620
+    //const ADDRESS_USDCQ_CONTRACT = "0x15B75932411a42Ba7E488EE6A904b3882533Fa08"; // localhost besu
+    //const ADDRESS_MINER_CONTRACT = "0x7747567368C25d2C4E4BFaD10403A97af0717c8f"; // localhost besu
+    const BESU_POLLING_TIMEOUT = 5000; // 5 seconds
+
+    // Smart Contract Event : Transfer()
+    const ERC_TRANSFER_SIG = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';  // localhost
+
+    // API Endpoints
+    const API_ENDPOINTS = {
+      bitcoin: 'https://blockstream.info/testnet/api',
+      ethereum: 'https://sepolia.infura.io/v3/4bc27a8cb891425ba313cf4913d35140',
+      besu: URL_BESU_API, //besu: 'http://172.16.239.1:8545',
+      solana: 'https://api.devnet.solana.com'
+    };
+
+    // Crypto configurations
+    const CRYPTOS = {
+      usdcq: { name: 'Quantum Dollar USDCq (Besu)', symbol: 'USDCq', priceKey: 'usdc' },
+      besu: { name: 'Quantum Coin ETHq (Besu)', symbol: 'ETHq', priceKey: 'eth' },
+      ethereum: { name: 'Ethereum', symbol: 'ETH', priceKey: 'eth' },
+      bitcoin: { name: 'Bitcoin', symbol: 'BTC', priceKey: 'btc' },
+      solana: { name: 'Solana', symbol: 'SOL', priceKey: 'sol' }
+    };
+
+    // Global Variables
+    let currentPage = 0;
+    let currentBlockchain = 'usdcq';
+    let walletSlot = '53897301';
+    let walletPin = '';
+    let userName = null;
+    let userDid = null; // Added variable to store DID Number
+    let senderAddr = ''; // ? still useful ?
+    let cryptoBalances = {};
+    let cryptoPrices = {};
+    let selectedCrypto = null;
+    let lastRawTx = '';
+    let isListening = false;
+    let lastBlockNumber = null;
+    let web3Besu = new Web3(URL_BESU_API);
+    //let web3Besu = new Web3('http://172.16.239.1:8545');
+
+    // Load USDCq ABI
+    let USDCQ_ABI = null;
+
+    // Load USDCq ABI
+    async function loadUSDCqABI() {
+      try {
+        const response = await fetch(ABI_USDCQ);
+        //const response = await fetch('./USDCq_ABI.json');
+        if (!response.ok) {
+          throw new Error(`Failed to load ABI: HTTP ${response.status}`);
+        }
+        USDCQ_ABI = await response.json();
+        logTransaction('USDCq ABI loaded successfully');
+        return true;
+      } catch (err) {
+        console.error("Error loading USDCq ABI:", err);
+        logTransaction(`Warning: USDCq ABI load failed: ${err.message}`);
+        return false;
+      }
+    }
+
+    // Page Navigation
+    function showPage(pageIndex) {
+      const pages = document.querySelectorAll('.page');
+      pages.forEach((page, idx) => {
+        page.classList.toggle('active', idx === pageIndex);
+      });
+      currentPage = pageIndex;
+      
+      // Show/hide scroll buttons
+      document.querySelectorAll('.scroll-btn').forEach(btn => btn.style.display = 'none');
+      if (pageIndex > 0) {
+        document.getElementById(`scrollUp${pageIndex + 1}`).style.display = 'flex';
+      }
+      if (pageIndex < 3) {
+        const downBtn = document.getElementById(`scrollDown${pageIndex + 1}`);
+        if (downBtn) downBtn.style.display = pageIndex === 0 && !walletPin ? 'none' : 'flex';
+      }
+    }
+
+    // Helper Functions
+    function stringToHex(str) {
+      return Array.from(new TextEncoder().encode(str))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+    }
+
+    function hexToBase64(hex) {
+      if (!hex) return "";
+      return btoa(hex.match(/\w{2}/g).map(a => String.fromCharCode(parseInt(a, 16))).join(""));
+    }
+
+    function truncateHex(str) {
+      if (typeof str !== 'string') return str;
+      if (/^0x[a-fA-F0-9]+$/.test(str) && str.length > 42) {
+        return str.slice(0, 12) + '...' + str.slice(-10);
+      }
+      return str;
+    }
+
+    function logTransaction(message) {
+      const logDiv = document.getElementById('transactionLog');
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.textContent = `[${new Date().toLocaleString()}] ${message}`;
+      logDiv.appendChild(entry);
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    function appendBlockchainLog(message, type = 'block') {
+      const logDiv = document.getElementById('blockchainConsole');
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      logDiv.appendChild(entry);
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    // Status Checks
+    async function checkBlockchainStatus() {
+      try {
+        // curl -X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' http://localhost:8545
+        const response = await fetch(API_ENDPOINTS.besu, {
+        //const response = await fetch(BESU_NODE_8545, {
+        //const response = await fetch('http://172.16.239.1:8545', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            method: "eth_blockNumber",
+            params: [],
+            id: 1
+          })
+        });
+        const data = await response.json();
+        document.getElementById('blockchainLight').classList.toggle('blue', !!data.result);
+      } catch (error) {
+        document.getElementById('blockchainLight').classList.remove('blue');
+      }
+    }
+
+    function checkWalletStatus() {
+      const isHttps = location.protocol === 'https:';
+      document.getElementById('walletLight').classList.toggle('green', isHttps);
+    }
+
+    // Crypto Price Fetching
+    async function fetchCryptoPrices() {
+      try {
+        const resp = await fetch(URL_PRICE_FEED);
+        const data = await resp.json();
+        return {
+          btc: data.bitcoin.usd,
+          eth: data.ethereum.usd,
+          sol: data.solana.usd,
+          usdc: data["usd-coin"].usd
+        };
+      } catch (err) {
+        console.error("Price fetch error:", err);
+        return null;
+      }
+    }
+
+    // Wallet Address
+    async function getWalletAddress(blockchain) {
+      try {
+        // Use the correct mechanism for each blockchain (don't map everything to besu)
+        const mechanism = blockchain === 'usdcq' ? 'besu' : blockchain;
+        const params = new URLSearchParams({ 
+          slot: walletSlot, 
+          pin: walletPin, 
+          mechanism 
+        });
+
+        // use proxy ICCHSMatter
+        const resp = await fetch(`${URL_PROXYICCHSMATTER}/walletReadAddress?${params.toString()}`)
+        // use direct ICCHSMatter
+        //const resp = await fetch(`${URL_ICCHSMATTER}/wallet_read_address?${params.toString()}`);
+        //for proxy : curl -X GET "https://us-central1-ironcapmatter.cloudfunctions.net/walletReadAddress?slot=53897302&pin=4321&mechanism=besu"
+        //const resp = await fetch(`http://127.0.0.1:5000/wallet_read_address?${params.toString()}`);
+        const data = await resp.json();
+        logTransaction(`Fetched ${blockchain} address: ${data.addr || 'Error: ' + data.error}`);
+        return data.error ? null : data.addr;
+      } catch (err) {
+        console.error(`Address fetch error for ${blockchain}:`, err);
+        logTransaction(`Address fetch error for ${blockchain}: ${err.message}`);
+        return null;
+      }
+    }
+
+    // Balance Functions
+    async function getBalance(blockchain, address) {
+      try {
+        if (blockchain === 'usdcq') {
+          // Check if ABI is loaded
+          if (!USDCQ_ABI) {
+            console.warn('USDCq ABI not loaded yet');
+            return 0;
+          }
+          
+          const web3 = new Web3(API_ENDPOINTS.besu);
+          const contract = new web3.eth.Contract(USDCQ_ABI, ADDRESS_USDCQ_CONTRACT);
+          
+          // Get balance and decimals
+          const balance = await contract.methods.balanceOf(address).call();
+          const decimals = await contract.methods.decimals().call();
+          
+          // Calculate display balance (convert from wei-like units to decimal)
+          const displayBalance = Number(balance) / Math.pow(10, decimals);
+          
+          logTransaction(`USDCq raw balance: ${balance}, decimals: ${decimals}, display: ${displayBalance}`);
+          return displayBalance;
+          
+        } else if (blockchain === 'besu') {
+          const payload = {
+            jsonrpc: "2.0",
+            method: "eth_getBalance", 
+            params: [address, "latest"],
+            id: 1
+          };
+          const resp = await fetch(API_ENDPOINTS.besu, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const data = await resp.json();
+          const wei = data.result ? BigInt(data.result) : 0n;
+          return Number(wei) / 1e18;
+          
+        } else if (blockchain === 'bitcoin') {
+          const resp = await fetch(`${API_ENDPOINTS.bitcoin}/address/${address}`);
+          const data = await resp.json();
+          const balance = (data.chain_stats.funded_txo_sum - data.chain_stats.spent_txo_sum) || 0;
+          return balance / 100000000; // Convert satoshis to BTC
+          
+        } else if (blockchain === 'ethereum') {
+          const payload = {
+            jsonrpc: "2.0",
+            method: "eth_getBalance",
+            params: [address, "latest"],
+            id: 1
+          };
+          const resp = await fetch(API_ENDPOINTS.ethereum, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const data = await resp.json();
+          const wei = data.result ? parseInt(data.result, 16) : 0;
+          return wei / 1e18;
+          
+        } else if (blockchain === 'solana') {
+          const payload = {
+            jsonrpc: "2.0",
+            method: "getBalance",
+            params: [address],
+            id: 1
+          };
+          const resp = await fetch(API_ENDPOINTS.solana, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const data = await resp.json();
+          const lamports = data.result && data.result.value ? data.result.value : 0;
+          return lamports / 1e9; // Convert lamports to SOL
+        }
+        
+        return 0;
+      } catch (err) {
+        console.error(`Balance fetch error for ${blockchain}:`, err);
+        logTransaction(`Balance fetch error for ${blockchain}: ${err.message}`);
+        return 0;
+      }
+    }
+
+    async function startCameraScan() {
+      const video = document.createElement('video');
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const previewDiv = document.getElementById('selectedImagePreview');
+      const saveBtn = document.getElementById('saveRecipientBtn');
+
+      previewDiv.innerHTML = '<span style="color:#4299e1;">Initializing camera...</span>';
+      saveBtn.style.display = 'none';
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        video.srcObject = stream;
+        video.setAttribute('playsinline', true); // Required for iOS Safari
+
+        // Wait for the video metadata to load
+        video.addEventListener('loadedmetadata', () => {
+          video.play();
+
+          previewDiv.innerHTML = '';
+          previewDiv.appendChild(video);
+
+          const scanQRCode = () => {
+            // Ensure video dimensions are valid
+            if (video.videoWidth > 0 && video.videoHeight > 0) {
+              canvas.width = video.videoWidth;
+              canvas.height = video.videoHeight;
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+              const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+              const qrCode = jsQR(imageData.data, canvas.width, canvas.height);
+
+              if (qrCode) {
+                const scannedData = qrCode.data;
+
+                try {
+                  // Attempt to parse the scanned data as JSON
+                  const jsonData = JSON.parse(scannedData);
+
+                  // Display the JSON content in the QR scan modal
+                  previewDiv.innerHTML = `
+                    <h3>Payment Request</h3>
+                    <pre style="text-align: left; background: #f4f4f4; padding: 10px; border-radius: 5px; overflow-x: auto; font-size: 14px; color: #333333;">
+                      ${JSON.stringify(jsonData, null, 2)}
+                    </pre>
+                  `;
+
+                  // Extract the "address" and "amount" values
+                  if (jsonData.address && jsonData.amount) {
+                    document.getElementById('recipientAddress').value = jsonData.address;
+                    document.getElementById('sendAmount').value = jsonData.amount;
+
+                    logTransaction(`Scanned JSON: Address=${jsonData.address}, Amount=${jsonData.amount}`);
+                  } else {
+                    logTransaction('Scanned JSON does not contain "address" or "amount" keys.');
+                  }
+                } catch (error) {
+                  // If not JSON, treat it as plain text
+                  previewDiv.innerHTML = `
+                    <span style="color:#48bb78; font-size: 14px;">Scanned Address:</span> 
+                    <br>
+                    <strong style="font-size: 12px; word-wrap: break-word; word-break: break-all; display: inline-block; max-width: 100%;">
+                      ${scannedData}
+                    </strong>
+                  `;
+                  saveBtn.style.display = 'inline-block';
+                  saveBtn.dataset.address = scannedData;
+
+                  logTransaction(`Scanned non-JSON data: ${scannedData}`);
+                }
+
+                // Stop the camera stream
+                stream.getTracks().forEach(track => track.stop());
+              } else {
+                requestAnimationFrame(scanQRCode);
+              }
+            } else {
+              console.warn('Video dimensions are not ready yet. Retrying...');
+              requestAnimationFrame(scanQRCode);
+            }
+          };
+
+          requestAnimationFrame(scanQRCode);
+        });
+      } catch (error) {
+        previewDiv.innerHTML = `<span style="color:#e53e3e;">Error accessing camera: ${error.message}</span>`;
+      }
+    }
+
+    // Replace the selectCrypto function with this enhanced version:
+    function selectCrypto(cryptoKey) {
+      // Check if this crypto is already selected
+      const isCurrentlySelected = selectedCrypto === cryptoKey;
+      
+      // Remove previous selection
+      document.querySelectorAll('.crypto-btn').forEach(btn => {
+        btn.classList.remove('selected');
+      });
+      
+      if (isCurrentlySelected) {
+        // Deselect if clicking the same crypto
+        selectedCrypto = null;
+        
+        // Show total portfolio
+        const totalCashValue = Object.values(cryptoBalances).reduce((sum, balance) => sum + balance.cashValue, 0);
+        document.getElementById('totalCashValue').textContent = `$${totalCashValue.toFixed(2)}`;
+        document.getElementById('selectedCurrency').textContent = 'All Cryptocurrencies';
+        document.getElementById('portfolioTitle').textContent = 'Total Portfolio';
+        
+        // Disable Pay button
+        const payBtn = document.getElementById('payBtn');
+        payBtn.classList.remove('active');
+        payBtn.style.opacity = '0.6';
+        
+        // Hide scroll down button
+        document.getElementById('scrollDown2').style.display = 'none';
+        
+        logTransaction('All cryptocurrencies deselected - showing total portfolio');
+      } else {
+        // Select new crypto
+        const selectedBtn = document.querySelector(`[data-crypto="${cryptoKey}"]`);
+        if (selectedBtn) {
+          selectedBtn.classList.add('selected');
+        }
+        
+        selectedCrypto = cryptoKey;
+        const crypto = CRYPTOS[cryptoKey];
+        const balance = cryptoBalances[cryptoKey];
+        
+        // Update portfolio display to show selected crypto
+        if (balance) {
+          document.getElementById('totalCashValue').textContent = `$${balance.cashValue.toFixed(2)}`;
+          document.getElementById('selectedCurrency').textContent = `${balance.balance.toFixed(6)} ${crypto.symbol}`;
+          document.getElementById('portfolioTitle').textContent = crypto.name;
+          
+          // Enable Pay button
+          const payBtn = document.getElementById('payBtn');
+          payBtn.classList.add('active');
+          payBtn.style.opacity = '1';
+          
+          // Show scroll down button for balance page
+          document.getElementById('scrollDown2').style.display = 'flex';
+          
+          logTransaction(`Selected ${crypto.name}: ${balance.balance.toFixed(6)} ${crypto.symbol} = $${balance.cashValue.toFixed(2)}`);
+        }
+      }
+    }
+
+    // Replace the updateCryptoSelector function with this grouped version:
+    function updateCryptoSelector() {
+      const currentAccountsSelector = document.getElementById('currentAccountsSelector');
+      const savingAccountsSelector = document.getElementById('savingAccountsSelector');
+      
+      currentAccountsSelector.innerHTML = '';
+      savingAccountsSelector.innerHTML = '';
+
+      // Define groups
+      const currentAccounts = ['usdcq', 'besu'];
+      const savingAccounts = ['ethereum', 'bitcoin', 'solana'];
+
+      // Create current accounts
+      currentAccounts.forEach(key => {
+        if (CRYPTOS[key]) {
+          const btn = createCryptoButton(key);
+          currentAccountsSelector.appendChild(btn);
+        }
+      });
+
+      // Create saving accounts
+      savingAccounts.forEach(key => {
+        if (CRYPTOS[key]) {
+          const btn = createCryptoButton(key);
+          savingAccountsSelector.appendChild(btn);
+        }
+      });
+    }
+
+    // Add helper function to create crypto buttons:
+    function createCryptoButton(key) {
+      const crypto = CRYPTOS[key];
+      const balance = cryptoBalances[key] || { balance: 0, cashValue: 0, address: 'Not loaded' };
+      const address = balance.address || 'Not loaded';
+      
+      const btn = document.createElement('div');
+      btn.className = `crypto-btn ${key}`;
+      btn.dataset.crypto = key;
+      
+      // Format balance display based on cryptocurrency
+      let balanceDisplay;
+      if (key === 'usdcq') {
+        balanceDisplay = balance.balance.toLocaleString(undefined, {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 6
+        });
+      } else {
+        balanceDisplay = balance.balance.toFixed(6);
+      }
+      
+      btn.innerHTML = `
+        <div class="crypto-info">
+          <div class="crypto-name">${crypto.name}</div>
+          <div class="crypto-balance">${balanceDisplay} ${crypto.symbol}</div>
+          <div class="crypto-balance" style="font-size: 10px; color: #a0aec0;">
+            ${address.length > 20 ? address.substring(0, 10) + '...' + address.substring(address.length - 8) : address}
+          </div>
+        </div>
+        <div class="crypto-value">$${balance.cashValue.toFixed(2)}</div>
+      `;
+      
+      // Add click handler
+      btn.addEventListener('click', () => selectCrypto(key));
+      return btn;
+    }
+
+    // Update the loadBalances function to handle total portfolio display:
+    async function loadBalances() {
+      cryptoPrices = await fetchCryptoPrices();
+      let totalCashValue = 0;
+      
+      // Store addresses for each crypto
+      const cryptoAddresses = {};
+
+      for (const [key, crypto] of Object.entries(CRYPTOS)) {
+        // Fetch address for each blockchain separately
+        const address = await getWalletAddress(key);
+        cryptoAddresses[key] = address;
+        
+        if (!address) {
+          console.warn(`No address available for ${key}`);
+          cryptoBalances[key] = { balance: 0, cashValue: 0, address: 'Not loaded' };
+          continue;
+        }
+        
+        // Special handling for USDCq to ensure ABI is loaded
+        if (key === 'usdcq' && !USDCQ_ABI) {
+          logTransaction('USDCq ABI not loaded, attempting to load...');
+          await loadUSDCqABI();
+          if (!USDCQ_ABI) {
+            cryptoBalances[key] = { balance: 0, cashValue: 0, address };
+            logTransaction('USDCq balance fetch skipped - ABI not available');
+            continue;
+          }
+        }
+        
+        const balance = await getBalance(key, address);
+        const price = cryptoPrices ? cryptoPrices[crypto.priceKey] : 0;
+        const cashValue = balance * price;
+        cryptoBalances[key] = { balance, cashValue, address };
+        totalCashValue += cashValue;
+        
+        logTransaction(`${crypto.name}: ${balance.toFixed(6)} ${crypto.symbol} = $${cashValue.toFixed(2)}`);
+        logTransaction(`Address: ${address.substring(0, 10)}...${address.substring(address.length - 8)}`);
+      }
+
+      // Set senderAddr to besu address for main wallet display
+      senderAddr = cryptoAddresses.besu || cryptoAddresses.usdcq;
+
+      // Update the portfolio display to show total
+      document.getElementById('totalCashValue').textContent = `$${totalCashValue.toFixed(2)}`;
+      document.getElementById('selectedCurrency').textContent = 'All Cryptocurrencies';
+      document.getElementById('portfolioTitle').textContent = 'Total Portfolio';
+      
+      // Reset selection state
+      selectedCrypto = null;
+      
+      // Disable Pay button initially
+      const payBtn = document.getElementById('payBtn');
+      payBtn.classList.remove('active');
+      payBtn.style.opacity = '0.6';
+      
+      // Update crypto selector with groups
+      updateCryptoSelector();
+      
+      // Auto-select USDCq if available
+      if (cryptoBalances.usdcq && cryptoBalances.usdcq.address !== 'Not loaded') {
+        selectCrypto('usdcq');
+      } else {
+        // Find first available crypto
+        for (const [key, balance] of Object.entries(cryptoBalances)) {
+          if (balance.address !== 'Not loaded') {
+            selectCrypto(key);
+            break;
+          }
+        }
+      }
+    }
+
+    // Update the updateCryptoSelector function to ensure proper click handling:
+    function updateCryptoSelector() {
+      const currentAccountsSelector = document.getElementById('currentAccountsSelector');
+      const savingAccountsSelector = document.getElementById('savingAccountsSelector');
+      
+      currentAccountsSelector.innerHTML = '';
+      savingAccountsSelector.innerHTML = '';
+
+      // Define groups
+      const currentAccounts = ['usdcq', 'besu'];
+      const savingAccounts = ['ethereum', 'bitcoin', 'solana'];
+
+      // Create current accounts
+      currentAccounts.forEach(key => {
+        if (CRYPTOS[key]) {
+          const btn = createCryptoButton(key);
+          currentAccountsSelector.appendChild(btn);
+        }
+      });
+
+      // Create saving accounts
+      savingAccounts.forEach(key => {
+        if (CRYPTOS[key]) {
+          const btn = createCryptoButton(key);
+          savingAccountsSelector.appendChild(btn);
+        }
+      });
+    }
+
+    // Update the loadBalances function to properly initialize the display:
+    async function loadBalances() {
+      cryptoPrices = await fetchCryptoPrices();
+      let totalCashValue = 0;
+      
+      // Store addresses for each crypto
+      const cryptoAddresses = {};
+
+      for (const [key, crypto] of Object.entries(CRYPTOS)) {
+        // Fetch address for each blockchain separately
+        const address = await getWalletAddress(key);
+        cryptoAddresses[key] = address;
+        
+        if (!address) {
+          console.warn(`No address available for ${key}`);
+          cryptoBalances[key] = { balance: 0, cashValue: 0, address: 'Not loaded' };
+          continue;
+        }
+        
+        // Special handling for USDCq to ensure ABI is loaded
+        if (key === 'usdcq' && !USDCQ_ABI) {
+          logTransaction('USDCq ABI not loaded, attempting to load...');
+          await loadUSDCqABI();
+          if (!USDCQ_ABI) {
+            cryptoBalances[key] = { balance: 0, cashValue: 0, address };
+            logTransaction('USDCq balance fetch skipped - ABI not available');
+            continue;
+          }
+        }
+        
+        const balance = await getBalance(key, address);
+        const price = cryptoPrices ? cryptoPrices[crypto.priceKey] : 0;
+        const cashValue = balance * price;
+        cryptoBalances[key] = { balance, cashValue, address };
+        totalCashValue += cashValue;
+        
+        logTransaction(`${crypto.name}: ${balance.toFixed(6)} ${crypto.symbol} = $${cashValue.toFixed(2)}`);
+        logTransaction(`Address: ${address.substring(0, 10)}...${address.substring(address.length - 8)}`);
+      }
+
+      // Set senderAddr to besu address for main wallet display
+      senderAddr = cryptoAddresses.besu || cryptoAddresses.usdcq;
+
+      // Update the portfolio display
+      document.getElementById('totalCashValue').textContent = `$${totalCashValue.toFixed(2)}`;
+      document.getElementById('selectedCurrency').textContent = 'All Cryptocurrencies';
+      document.getElementById('portfolioTitle').textContent = 'Total Portfolio';
+      
+      // Reset selection state
+      selectedCrypto = null;
+      
+      // Disable Pay button initially
+      const payBtn = document.getElementById('payBtn');
+      payBtn.classList.remove('active');
+      payBtn.style.opacity = '0.6';
+      
+      // Update crypto selector with groups
+      updateCryptoSelector();
+      
+      // Auto-select USDCq if available
+      if (cryptoBalances.usdcq && cryptoBalances.usdcq.address !== 'Not loaded') {
+        selectCrypto('usdcq');
+      } else {
+        // Find first available crypto
+        for (const [key, balance] of Object.entries(cryptoBalances)) {
+          if (balance.address !== 'Not loaded') {
+            selectCrypto(key);
+            break;
+          }
+        }
+      }
+    }
+
+    // Call this in selectCrypto and after page load on transaction page
+    function updateTxSectionBorder() {
+      const section = document.getElementById('txSectionHeader');
+      let color = '#4299e1'; // default
+      if (selectedCrypto === 'ethereum') color = '#805ad5';
+      if (selectedCrypto === 'bitcoin') color = '#ed8936';
+      if (selectedCrypto === 'solana') color = '#63b3ed';
+      if (selectedCrypto === 'usdcq') color = '#4299e1';
+      if (selectedCrypto === 'besu') color = '#4299e1';
+      section.style.borderColor = color;
+    }
+
+    // Update the updateTransactionHeader function to use correct address:
+    function updateTransactionHeader() {
+      if (!selectedCrypto) return;
+      
+      const crypto = CRYPTOS[selectedCrypto];
+      const balance = cryptoBalances[selectedCrypto];
+      const address = balance.address || 'Address not loaded';
+      
+      document.getElementById('selectedCryptoName').textContent = crypto.name;
+      document.getElementById('walletAddress').textContent = `Address: ${address}`;
+      document.getElementById('walletBalance').textContent = 
+        `${balance.balance.toFixed(6)} ${crypto.symbol}`;
+      document.getElementById('cashValueDisplay').textContent = `$${balance.cashValue.toFixed(2)}`;
+      document.getElementById('amountUnit').textContent = crypto.symbol;
+    }
+
+    // Gas and Transaction Functions
+    async function fetchGasData(blockchain) {
+      const gasFields = document.getElementById('gasFields');
+      gasFields.innerHTML = '';
+      gasFields.classList.add('show');
+      
+      const cryptoAddress = cryptoBalances[blockchain]?.address;
+      if (!cryptoAddress || cryptoAddress === 'Not loaded') {
+        logTransaction(`Error: No address available for ${blockchain}`);
+        return;
+      }
+
+      if (blockchain === 'bitcoin') {
+        gasFields.innerHTML = `
+          <div class="gas-field" id="feeField">
+            <label>Fee (Satoshis)</label>
+            <input type="number" id="fee" class="input-field" value="1000">
+          </div>
+          <div class="gas-field">
+            <label>Previous TXID (UTXO)</label>
+            <input type="text" id="prevTxid" class="input-field" value="abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789">
+          </div>
+          <div class="gas-field">
+            <label>Output N (UTXO index)</label>
+            <input type="number" id="outputN" class="input-field" value="0">
+          </div>
+          <div class="gas-field" id="inputValueField">
+            <label>Input Value (Satoshis)</label>
+            <input type="number" id="inputValue" class="input-field" value="100000">
+          </div>
+          <div class="gas-field" id="outputValueField">
+            <label>Output Value (Satoshis)</label>
+            <input type="number" id="outputValue" class="input-field" value="90000">
+          </div>
+        `;
+        
+        // Add event listener to check balance when fee changes
+        const feeInput = document.getElementById('fee');
+        const inputValueField = document.getElementById('inputValue');
+        const feeField = document.getElementById('feeField');
+        const inputField = document.getElementById('inputValueField');
+        
+        const checkBitcoinBalance = () => {
+          const fee = parseInt(feeInput.value) || 0;
+          const inputValue = parseInt(inputValueField.value) || 0;
+          const sendAmount = parseFloat(document.getElementById('sendAmount').value) || 0;
+          const sendAmountSats = sendAmount < 1000 ? Math.floor(sendAmount * 100000000) : sendAmount;
+          
+          // Check if balance is insufficient
+          if (inputValue < fee) {
+            // Insufficient funds for fee alone
+            feeField.classList.add('insufficient-funds');
+            inputField.classList.add('insufficient-funds');
+            logTransaction(`⚠️ Insufficient Bitcoin balance: ${inputValue} sats < ${fee} sats fee`, 'error');
+          } else if (inputValue < (sendAmountSats + fee)) {
+            // Insufficient funds for send amount + fee
+            feeField.classList.add('insufficient-funds');
+            logTransaction(`⚠️ Insufficient Bitcoin balance: ${inputValue} sats < ${sendAmountSats + fee} sats (amount + fee)`, 'error');
+          } else {
+            // Sufficient funds
+            feeField.classList.remove('insufficient-funds');
+            inputField.classList.remove('insufficient-funds');
+          }
+        };
+        
+        feeInput.addEventListener('input', checkBitcoinBalance);
+        inputValueField.addEventListener('input', checkBitcoinBalance);
+        
+        // Also check when send amount changes
+        const sendAmountInput = document.getElementById('sendAmount');
+        if (sendAmountInput) {
+          sendAmountInput.addEventListener('input', checkBitcoinBalance);
+        }
+        
+        try {
+          // Fetch UTXOs first
+          const resp = await fetch(`${API_ENDPOINTS.bitcoin}/address/${cryptoAddress}/utxo`);
+          if (resp.ok) {
+            const utxos = await resp.json();
+            if (utxos.length > 0) {
+              const utxo = utxos[0];
+              document.getElementById('prevTxid').value = utxo.txid;
+              document.getElementById('outputN').value = utxo.vout;
+              document.getElementById('inputValue').value = utxo.value;
+              
+              // Fetch Bitcoin network fee estimates (this is the gas fee routine)
+              let fee = 1000; // Default fallback fee
+              try {
+                const feeResp = await fetch(`${API_ENDPOINTS.bitcoin}/fee-estimates`);
+                if (feeResp.ok) {
+                  const feeData = await feeResp.json();
+                  // Use 1-block confirmation fee estimate
+                  if (feeData['1']) {
+                    fee = Math.ceil(feeData['1'] * 1e8); // Convert BTC/vB to sats/vB, assume 1 vB transaction
+                    logTransaction(`Network fee estimate: ${feeData['1']} BTC/vB = ${fee} sats`);
+                  }
+                }
+              } catch (feeErr) {
+                logTransaction(`Fee estimate fetch failed, using default: ${fee} sats`);
+              }
+              
+              document.getElementById('fee').value = fee;
+              
+              // Calculate optimal output value based on input and fee
+              const sendAmount = parseFloat(document.getElementById('sendAmount').value) || 0;
+              const feeValue = fee;
+              let outputValue = sendAmount;
+              
+              // Convert from BTC to satoshis if needed
+              const sendAmountSats = sendAmount < 1000 ? Math.floor(sendAmount * 100000000) : sendAmount;
+              
+              if (sendAmountSats + feeValue > utxo.value) {
+                outputValue = Math.max(utxo.value - feeValue, 0);
+                // Update the send amount field to reflect maximum possible
+                document.getElementById('sendAmount').value = (outputValue / 100000000).toFixed(8);
+                logTransaction(`Adjusted send amount to ${outputValue} sats due to insufficient funds`);
+              } else {
+                outputValue = sendAmountSats;
+              }
+              
+              document.getElementById('outputValue').value = outputValue;
+              
+              logTransaction(`UTXO found: ${utxo.value} sats`);
+              logTransaction(`Fee: ${feeValue} sats, Output: ${outputValue} sats`);
+              logTransaction(`TXID: ${utxo.txid.substring(0, 16)}..., Vout: ${utxo.vout}`);
+              
+              // Check balance immediately after loading data
+              setTimeout(checkBitcoinBalance, 100);
+              
+            } else {
+              logTransaction('No UTXOs found. Fund your Bitcoin wallet first.');
+              // Mark as insufficient since no UTXOs
+              feeField.classList.add('insufficient-funds');
+              inputField.classList.add('insufficient-funds');
+            }
+          } else {
+            logTransaction(`UTXO fetch failed: HTTP ${resp.status}`);
+            // Mark as insufficient since UTXO fetch failed
+            feeField.classList.add('insufficient-funds');
+          }
+        } catch (err) {
+          logTransaction(`Bitcoin gas/UTXO fetch error: ${err.message}`);
+          // Set fallback values
+          document.getElementById('fee').value = '1000';
+          document.getElementById('outputValue').value = '90000';
+          // Mark as insufficient since there was an error
+          feeField.classList.add('insufficient-funds');
+        }
+      } else if (blockchain === 'ethereum') {
+        // Ethereum uses legacy gas pricing (gasPrice no EIP-1559)
+        gasFields.innerHTML = `
+          <div class="gas-field">
+            <label>Gas Limit</label>
+            <input type="number" id="gasLimit" class="input-field" value="22000">
+          </div>
+          <div class="gas-field">
+            <label>Gas Price (Wei)</label>
+            <input type="number" id="gasPrice" class="input-field" value="20000000000">
+          </div>
+          <div class="gas-field">
+            <label>Nonce</label>
+            <input type="number" id="nonce" class="input-field" value="0">
+          </div>
+        `;
+
+        try {
+          // Fetch gas price for Ethereum (different method than Besu)
+          const gasResp = await fetch(API_ENDPOINTS.ethereum, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              jsonrpc: "2.0",
+              method: "eth_gasPrice",
+              params: [],
+              id: 1
+            })
+          });
+          const gasData = await gasResp.json();
+          
+          // Fetch nonce for Ethereum
+          const nonceResp = await fetch(API_ENDPOINTS.ethereum, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              jsonrpc: "2.0",
+              method: "eth_getTransactionCount",
+              params: [cryptoAddress, "latest"],
+              id: 2
+            })
+          });
+          const nonceData = await nonceResp.json();
+          
+          if (gasData.result) {
+            document.getElementById('gasPrice').value = parseInt(gasData.result, 16);
+            logTransaction(`Ethereum gas price: ${parseInt(gasData.result, 16)} wei`);
+          }
+          if (nonceData.result) {
+            document.getElementById('nonce').value = parseInt(nonceData.result, 16);
+            logTransaction(`Ethereum nonce for ${cryptoAddress}: ${parseInt(nonceData.result, 16)}`);
+          }
+        } catch (err) {
+          logTransaction(`Ethereum gas fetch error: ${err.message}`);
+          // Set fallback values
+          document.getElementById('gasPrice').value = '20000000000';
+          document.getElementById('nonce').value = '0';
+        }
+      } else if (blockchain === 'besu' || blockchain === 'usdcq') {
+        // Besu/USDCq gas fields with EIP-1559 support
+        gasFields.innerHTML = `
+          <div class="gas-field">
+            <label>Gas Limit</label>
+            <input type="number" id="gasLimit" class="input-field" value="${blockchain === 'usdcq' ? '60000' : '22000'}">
+          </div>
+          <div class="gas-field">
+            <label>Gas Price (Wei)</label>
+            <input type="number" id="gasPrice" class="input-field" value="0">
+          </div>
+          <div class="gas-field">
+            <label>Max Fee Per Gas (Wei)</label>
+            <input type="number" id="maxFeePerGas" class="input-field" value="">
+          </div>
+          <div class="gas-field">
+            <label>Max Priority Fee Per Gas (Wei)</label>
+            <input type="number" id="maxPriorityFeePerGas" class="input-field" value="">
+          </div>
+          <div class="gas-field">
+            <label>Nonce</label>
+            <input type="number" id="nonce" class="input-field" value="0">
+          </div>
+        `;
+
+        try {
+          // Fetch Besu EIP-1559 gas fees
+          const feeResp = await fetch(API_ENDPOINTS.besu, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              jsonrpc: "2.0",
+              method: "eth_getBlockByNumber",
+              params: ["latest", false],
+              id: 1
+            })
+          });
+          const feeData = await feeResp.json();
+          let baseFee = 0;
+          const suggestedPriorityFee = 1000000000; // 1 Gwei
+
+          if (feeData.result && feeData.result.baseFeePerGas) {
+            baseFee = parseInt(feeData.result.baseFeePerGas, 16);
+            document.getElementById('maxFeePerGas').value = baseFee + suggestedPriorityFee;
+            document.getElementById('maxPriorityFeePerGas').value = suggestedPriorityFee;
+            logTransaction(`Besu base fee: ${baseFee} wei, priority fee: ${suggestedPriorityFee} wei`);
+          } else {
+            document.getElementById('maxFeePerGas').value = suggestedPriorityFee;
+            document.getElementById('maxPriorityFeePerGas').value = suggestedPriorityFee;
+            logTransaction(`Besu: Using fallback priority fee: ${suggestedPriorityFee} wei`);
+          }
+
+          // Fetch nonce for Besu
+          const nonceResp = await fetch(API_ENDPOINTS.besu, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              jsonrpc: "2.0",
+              method: "eth_getTransactionCount",
+              params: [cryptoAddress, "pending"],
+              id: 2
+            })
+          });
+          const nonceData = await nonceResp.json();
+          if (nonceData.result) {
+            document.getElementById('nonce').value = parseInt(nonceData.result, 16);
+            logTransaction(`Besu nonce for ${cryptoAddress}: ${parseInt(nonceData.result, 16)}`);
+          }
+        } catch (err) {
+          logTransaction(`Besu gas fetch error: ${err.message}`);
+          // Set fallback values
+          document.getElementById('maxFeePerGas').value = '';
+          document.getElementById('maxPriorityFeePerGas').value = '';
+          document.getElementById('nonce').value = '0';
+        }
+      } else if (blockchain === 'solana') {
+        gasFields.innerHTML = `
+          <div class="gas-field">
+            <label>Recent Blockhash</label>
+            <input type="text" id="recentBlockhash" class="input-field" value="11111111111111111111111111111111">
+          </div>
+        `;
+
+        try {
+          const resp = await fetch(API_ENDPOINTS.solana, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              jsonrpc: "2.0",
+              method: "getLatestBlockhash",
+              id: 1
+            })
+          });
+          const data = await resp.json();
+          if (data.result && data.result.value.blockhash) {
+            document.getElementById('recentBlockhash').value = data.result.value.blockhash;
+            logTransaction(`Recent blockhash: ${data.result.value.blockhash.slice(0, 16)}...`);
+          }
+        } catch (err) {
+          logTransaction(`Blockhash fetch error: ${err.message}`);
+        }
+      }
+    }
+
+    async function signTransaction() {
+      if (!selectedCrypto || !cryptoBalances[selectedCrypto] || !cryptoBalances[selectedCrypto].address) {
+        logTransaction('Error: No crypto selected or address not loaded');
+        return;
+      }
+
+      const amount = document.getElementById('sendAmount').value;
+      const recipient = document.getElementById('recipientAddress').value;
+      const senderAddress = cryptoBalances[selectedCrypto].address;
+
+      if (!amount || !recipient) {
+        logTransaction('Error: Amount and recipient required');
+        return;
+      }
+
+      logTransaction(`Signing transaction for ${selectedCrypto} from ${senderAddress}`);
+
+      try {
+        let params;
+        if (selectedCrypto === 'bitcoin') {
+          const fee = document.getElementById('fee').value;
+          const prevTxid = document.getElementById('prevTxid').value;
+          const outputN = document.getElementById('outputN').value;
+          const inputValue = document.getElementById('inputValue').value;
+          
+          // Convert amount from BTC to satoshis for outputValue
+          const outputValue = Math.floor(parseFloat(amount) * 100000000); // Convert BTC to satoshis
+          
+          params = new URLSearchParams({
+            slot: walletSlot,
+            pin: walletPin,
+            mechanism: 'bitcoin',
+            hashedTransaction: stringToHex(senderAddress + recipient + amount + prevTxid).substring(0, 64),
+            prevTxid,
+            outputN,
+            inputValue,
+                                 outputValue: outputValue.toString() // Ensure it's a string
+          });
+        } else if (selectedCrypto === 'ethereum') {
+          // Ethereum uses legacy gas pricing (gasPrice only, no EIP-1559)
+          const gasLimit = document.getElementById('gasLimit').value;
+          const gasPrice = document.getElementById('gasPrice').value;
+          const nonce = document.getElementById('nonce').value;
+          
+          params = new URLSearchParams({
+            slot: walletSlot,
+            pin: walletPin,
+            mechanism: 'ethereum',
+            hashedTransaction: stringToHex(senderAddress + recipient + amount).substring(0, 64),
+            nonce,
+            gas: gasLimit,
+            gasPrice,
+            to: recipient,
+            value: Web3.utils.toWei(amount, 'ether'),
+            data: '0x',
+            chainId: '11155111' // Sepolia testnet
+          });
+        } else if (selectedCrypto === 'solana') {
+          params = new URLSearchParams({
+            slot: walletSlot,
+            pin: walletPin,
+            mechanism: 'solana',
+            to: recipient,
+            lamports: Math.floor(amount * 1e9),
+            recentBlockhash: document.getElementById('recentBlockhash').value
+          });
+        } else if (selectedCrypto === 'besu') {
+          // Besu supports EIP-1559 gas pricing
+          const gasLimit = document.getElementById('gasLimit').value;
+          const nonce = document.getElementById('nonce').value;
+          
+          params = new URLSearchParams({
+            slot: walletSlot,
+            pin: walletPin,
+            mechanism: 'besu',
+            hashedTransaction: stringToHex(senderAddress + recipient + amount).substring(0, 64),
+            nonce,
+            gas: gasLimit,
+            to: recipient,
+            value: Web3.utils.toWei(amount, 'ether'),
+            data: '0x',
+            chainId: '1337'
+          });
+          
+          const maxFeePerGas = document.getElementById('maxFeePerGas').value;
+          const maxPriorityFeePerGas = document.getElementById('maxPriorityFeePerGas').value;
+          if (maxFeePerGas && maxPriorityFeePerGas) {
+            params.append('maxFeePerGas', maxFeePerGas);
+            params.append('maxPriorityFeePerGas', maxPriorityFeePerGas);
+          } else {
+            const gasPrice = document.getElementById('gasPrice').value || '0';
+            params.append('gasPrice', gasPrice);
+          }
+        } else if (selectedCrypto === 'usdcq') {
+          if (!USDCQ_ABI) {
+            logTransaction('Error: USDCq ABI not loaded');
+            return;
+          }
+          
+          const web3 = new Web3(API_ENDPOINTS.besu);
+          const contract = new web3.eth.Contract(USDCQ_ABI, ADDRESS_USDCQ_CONTRACT);
+          const decimals = await contract.methods.decimals().call();
+          const amountWei = web3.utils.toBN(web3.utils.toWei(amount, 'ether')).div(web3.utils.toBN(10 ** (18 - decimals)));
+          const dataHex = contract.methods.transfer(recipient, amountWei.toString()).encodeABI();
+
+          const gasLimit = document.getElementById('gasLimit').value;
+          const nonce = document.getElementById('nonce').value;
+
+          params = new URLSearchParams({
+            slot: walletSlot,
+            pin: walletPin,
+            mechanism: 'besu',
+            hashedTransaction: stringToHex(senderAddress + recipient + amount + ADDRESS_USDCQ_CONTRACT).substring(0, 64),
+            nonce,
+            gas: gasLimit,
+            to: ADDRESS_USDCQ_CONTRACT,
+            value: '0',
+            data: dataHex,
+            chainId: '1337'
+          });
+
+          const maxFeePerGas = document.getElementById('maxFeePerGas').value;
+          const maxPriorityFeePerGas = document.getElementById('maxPriorityFeePerGas').value;
+          if (maxFeePerGas && maxPriorityFeePerGas) {
+            params.append('maxFeePerGas', maxFeePerGas);
+            params.append('maxPriorityFeePerGas', maxPriorityFeePerGas);
+          } else {
+            const gasPrice = document.getElementById('gasPrice').value || '0';
+            params.append('gasPrice', gasPrice);
+          }
+        }
+
+        // for all cryptos, we use the same endpoint
+        // use proxy ICCHSMatter
+        const resp = await fetch(`${URL_PROXYICCHSMATTER}/walletSignTransaction?${params.toString()}`);
+        // use local proxy for testing
+        //const resp = await fetch(`${URL_ICCHSMATTER}/wallet_sign_transaction?${params.toString()}`);
+        //for proxy : curl -X GET "https://us-central1-ironcapmatter.cloudfunctions.net/walletSignTransaction?slot=53897302&pin=4321&mechanism=besu&hashedTransaction=0x02f8b182053915843b9aca00843b9aca0782ea609415b75932411a42ba7e488ee6a904b3882533fa0880b844a9059cbb00000000000000000000000029f780c62f75dccc7ff6f43f7e319e4da870a3c7000000000000000000000000000000000000000000000000000000000000000dc080a011d09acaa2429c290aaeeac60a6db73cc0e40973ef62f9fdb978e9761e325220a01543f5d2511f6c1215c12c666c487dd27280693fe5cfd0c49a04d8eeaf96e3f6&nonce=21&gas=60000&to=0x15B75932411a42Ba7E488EE6A904b3882533Fa08&value=0&data=0&chainId=1337&maxFeePerGas=1000000007&maxPriorityFeePerGas=1000000000&gasPrice=0" 
+        //const resp = await fetch(`http://127.0.0.1:5000/wallet_sign_transaction?${params.toString()}`);
+        const data = await resp.json();
+
+        if (data.error) {
+          logTransaction(`Signing error: ${data.error}`);
+        } else {
+          lastRawTx = data.sig;
+          logTransaction(`Transaction signed successfully`);
+          logTransaction(`Signer: ${data.addr}`);
+          logTransaction(`Signature: ${data.sig.substring(0, 32)}...`);
+        }
+      } catch (err) {
+        logTransaction(`Signing error: ${err.message}`);
+      }
+    }
+
+    async function broadcastTransaction() {
+      if (!lastRawTx) {
+        logTransaction('Error: No signed transaction to broadcast');
+        return;
+      }
+
+      logTransaction('Broadcasting transaction...');
+
+      try {
+        let apiUrl, options, result, status = 'success';
+
+        if (selectedCrypto === 'bitcoin') {
+          apiUrl = `${API_ENDPOINTS.bitcoin}/tx`;
+          options = {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: lastRawTx
+          };
+          const resp = await fetch(apiUrl, options);
+          if (resp.ok) {
+            result = await resp.text();
+            logTransaction(`Broadcast successful! TXID: ${result}`);
+          } else {
+            const error = await resp.text();
+            logTransaction(`Broadcast failed: ${error}`);
+            status = 'fail';
+          }
+        } else if (selectedCrypto === 'ethereum') {
+          apiUrl = API_ENDPOINTS.ethereum;
+          options = {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              jsonrpc: "2.0",
+              method: "eth_sendRawTransaction",
+              params: [lastRawTx],
+              id: 1
+            })
+          };
+          const resp = await fetch(apiUrl, options);
+          const data = await resp.json();
+          if (data.result) {
+            result = data.result;
+            logTransaction(`Broadcast successful! TX Hash: ${result}`);
+          } else {
+            logTransaction(`Broadcast failed: ${data.error.message}`);
+            status = 'fail';
+          }
+        } else if (selectedCrypto === 'besu' || selectedCrypto === 'usdcq') {
+          apiUrl = API_ENDPOINTS.besu;
+          options = {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              jsonrpc: "2.0",
+              method: "eth_sendRawTransaction",
+              params: [lastRawTx],
+              id: 1
+            })
+          };
+          const resp = await fetch(apiUrl, options);
+          const data = await resp.json();
+          if (data.result) {
+            result = data.result;
+            logTransaction(`Broadcast successful! TX Hash: ${result}`);
+          } else {
+            logTransaction(`Broadcast failed: ${data.error.message}`);
+            status = 'fail';
+          }
+        } else if (selectedCrypto === 'solana') {
+          apiUrl = API_ENDPOINTS.solana;
+          options = {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              jsonrpc: "2.0",
+              method: "sendTransaction",
+              params: [hexToBase64(lastRawTx), {"encoding": "base64"}],
+              id: 1
+            })
+          };
+          const resp = await fetch(apiUrl, options);
+          const data = await resp.json();
+          if (data.result) {
+            result = data.result;
+            logTransaction(`Broadcast successful! Signature: ${result}`);
+          } else {
+            logTransaction(`Broadcast failed: ${data.error.message}`);
+            status = 'fail';
+          }
+        }
+
+        // Update proof details with status
+        updateProofDetails(result, apiUrl, status);
+
+        // Auto scroll to proof page
+        setTimeout(() => showPage(3), 2000);
+
+      } catch (err) {
+        logTransaction(`Broadcast error: ${err.message}`);
+        updateProofDetails('Broadcast error', '', 'fail');
+        setTimeout(() => showPage(3), 2000);
+      }
+    }
+
+    // In your updateProofDetails function, add a status parameter and set the icon:
+    function updateProofDetails(txHash, apiUrl, status = 'success') {
+      const domain = new URL(apiUrl).hostname;
+      const amount = document.getElementById('sendAmount').value;
+      const senderAddr = cryptoBalances[selectedCrypto]?.address || 'Not loaded';
+      const recipient = document.getElementById('recipientAddress').value;
+      const crypto = CRYPTOS[selectedCrypto];
+
+      // Set the icon
+      const iconDiv = document.getElementById('proofStatusIcon');
+      if (status === 'success') {
+        iconDiv.innerHTML = '<span class="proof-status-success">✔</span>';
+      } else {
+        iconDiv.innerHTML = '<span class="proof-status-fail">✖</span>';
+      }
+
+      // Build the proof details (TRANSACTION DETAILS)
+      const proofDetails = document.getElementById('proofDetails');
+      proofDetails.innerHTML = `
+        <div class="proof-row">
+          <div class="proof-label">Timestamp:</div>
+          <div class="proof-value">${new Date().toLocaleString()}</div>
+        </div>
+        <div class="proof-row">
+          <div class="proof-label">Cryptocurrency:</div>
+          <div class="proof-value">${crypto.name}</div>
+        </div>
+        <div class="proof-row">
+          <div class="proof-label">Broadcast API:</div>
+          <div class="proof-value">${domain}</div>
+        </div>
+        <div class="proof-row">
+          <div class="proof-label">Sender:</div>
+          <div class="proof-value">${senderAddr}</div>
+        </div>
+        <div class="proof-row">
+          <div class="proof-label">Recipient:</div>
+          <div class="proof-value">${recipient}</div>
+        </div>
+        <div class="proof-row">
+          <div class="proof-label">Amount:</div>
+          <div class="proof-value">${amount} ${crypto.symbol}</div>
+        </div>
+        <div class="proof-row">
+          <div class="proof-label">TX Hash:</div>
+          <div class="proof-value">
+            ${selectedCrypto === 'besu' || selectedCrypto === 'usdcq' ? 
+              `<button class="btn-secondary" onclick="fetchTransactionDetails('${txHash}')">${txHash}</button>` :
+              `<a href="${getExplorerUrl(txHash)}" target="_blank" rel="noopener">${txHash}</a>`
+            }
+          </div>
+        </div>
+      `;
+    }
+
+    // Helper function to get the explorer URL for non-Besu/USDC transactions
+    function getExplorerUrl(txHash) {
+      if (selectedCrypto === 'ethereum') {
+        return `https://sepolia.etherscan.io/tx/${txHash}`;
+      } else if (selectedCrypto === 'bitcoin') {
+        return `https://blockstream.info/testnet/tx/${txHash}`;
+      } else if (selectedCrypto === 'solana') {
+        return `https://explorer.solana.com/tx/${txHash}?cluster=devnet`;
+      }
+      return '#';
+    }
+
+    // Function to fetch transaction details and display them in a popup
+    async function fetchTransactionDetails(txHash) {
+      try {
+        //const response = await fetch('http://localhost:8545', {
+        const response = await fetch(URL_BESU_API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            method: "eth_getTransactionByHash",
+            params: [txHash],
+            id: 1
+          })
+        });
+
+        const data = await response.json();
+
+        // Display the JSON response in a popup
+        const popup = document.createElement('div');
+        popup.className = 'popup';
+        popup.innerHTML = `
+          <div class="popup-content">
+            <h3>Besu Transaction Details</h3>
+            <pre>${JSON.stringify(data, null, 2)}</pre>
+            <button class="btn-primary" onclick="closePopup()">Close</button>
+          </div>
+        `;
+        document.body.appendChild(popup);
+      } catch (error) {
+        alert(`Error fetching transaction details: ${error.message}`);
+      }
+    }
+
+    // Function to close the popup
+    function closePopup() {
+      const popup = document.querySelector('.popup');
+      if (popup) {
+        popup.remove();
+      }
+    }
+
+    // Modal Functions
+    function openScanModal() {
+      document.getElementById('scanModal').style.display = 'flex';
+    }
+
+    function closeScanModal() {
+      document.getElementById('scanModal').style.display = 'none';
+    }
+
+    function openSetupModal() {
+      document.getElementById('setupModal').style.display = 'flex';
+      document.getElementById('userNameInput').value = userName;
+      document.getElementById('slotInput').value = walletSlot;
+      document.getElementById('didInput').value = userDid; // Populate DID Number
+    }
+
+    function closeSetupModal() {
+      document.getElementById('setupModal').style.display = 'none';
+    }
+
+    function openQrModal(address, cryptoName) {
+      if (!address || address === 'Not loaded') {
+        alert('Invalid address provided');
+        return;
+      }
+      
+      document.getElementById('qrModal').style.display = 'flex';
+      document.getElementById('qrCryptoName').textContent = cryptoName;
+      document.getElementById('qrAddress').textContent = address;
+      
+      // Clear previous QR code
+      const canvas = document.getElementById('qrCanvas');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Generate QR code
+      QRCode.toCanvas(canvas, address, {
+        width: 200,
+        margin: 2,
+        color: {
+          dark: '#4a148c',     // Dark purple (foreground)
+          light: '#e0e0e0'     // Light grey (background)
+        }
+      }, function (error) {
+        if (error) {
+          console.error('QR code generation error:', error);
+          // Show error message in canvas
+          ctx.fillStyle = '#e53e3e';
+          ctx.font = '14px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText('QR Generation Failed', canvas.width/2, canvas.height/2);
+        }
+      });
+    }
+
+    function closeQrModal() {
+      document.getElementById('qrModal').style.display = 'none';
+    }
+
+    async function reloadAllBalances() {
+      const reloadBtn = document.getElementById('reloadBalancesBtn');
+      const reloadIndicator = reloadBtn.querySelector('.reload-indicator');
+      reloadBtn.classList.add('loading');
+      reloadIndicator.textContent = '↻';
+
+      try {
+        await loadBalances();
+        reloadIndicator.textContent = '✅';
+        setTimeout(() => {
+          reloadIndicator.textContent = '↻ Tap to Reload Balances';
+          reloadBtn.classList.remove('loading');
+        }, 1200);
+      } catch (error) {
+        reloadIndicator.textContent = '❌';
+        setTimeout(() => {
+          reloadIndicator.textContent = '↻ Tap to Reload Balances';
+          reloadBtn.classList.remove('loading');
+        }, 2000);
+      }
+    }
+
+    // Add this JS after the setup modal event listener:
+    document.getElementById('themeSelect').addEventListener('change', function() {
+      document.body.classList.remove('theme-default', 'theme-lightgreen', 'theme-lightyellow', 'theme-lightpink');
+      document.body.classList.add(this.value);
+    });
+
+    // Also set the theme when setup is saved:
+    document.getElementById('generateKycBtn').addEventListener('click', function() {
+      // Set theme according to selection
+      const theme = document.getElementById('themeSelect').value;
+      document.body.classList.remove('theme-default', 'theme-lightgreen', 'theme-lightyellow', 'theme-lightpink');
+      document.body.classList.add(theme);
+    });
+
+    // Add this initialization code in the window load event listener:
+    window.addEventListener('load', async function() {
+      // Initialize page navigation
+      showPage(0);
+      
+      // Load USDCq ABI
+      await loadUSDCqABI();
+      
+      // Initial status checks
+      console.log('Performing initial status checks...');
+      await checkBlockchainStatus();
+      checkWalletStatus();
+      
+      // Set up periodic status checks every 10 seconds
+      setInterval(async () => {
+        await checkBlockchainStatus();
+        checkWalletStatus();
+      }, 10000);
+      
+      console.log('Status monitoring initialized');
+    });
+    
+    // Top button event listeners
+    document.getElementById('scanBtn').addEventListener('click', openScanModal);
+    document.getElementById('setupBtn').addEventListener('click', openSetupModal);
+
+    // File input for scanning
+    document.getElementById('fileInput').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      const previewDiv = document.getElementById('selectedImagePreview');
+      const saveBtn = document.getElementById('saveRecipientBtn');
+      previewDiv.innerHTML = '';
+      saveBtn.style.display = 'none';
+
+      if (file && file.type === 'image/png') {
+        // Show image preview
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          previewDiv.innerHTML = `<img src="${evt.target.result}" alt="Selected QR" style="max-width:180px;max-height:180px;border-radius:10px;box-shadow:0 2px 12px #ccc;">`;
+          saveBtn.style.display = 'inline-block';
+          saveBtn.dataset.address = file.name.replace(/\.png$/i, '');
+        };
+        reader.readAsDataURL(file);
+      } else {
+        previewDiv.innerHTML = '<span style="color:#e53e3e;">Please select a PNG file.</span>';
+      }
+    });
+
+    // Save and close button
+    document.getElementById('saveRecipientBtn').addEventListener('click', function() {
+      const address = this.dataset.address || '';
+      if (address) {
+        document.getElementById('recipientAddress').value = address;
+        logTransaction(`Scanned file: using "${address}" as recipient address`);
+      }
+      closeScanModal();
+    });
+
+    // Setup modal - Generate KYC link
+    document.getElementById('generateKycBtn').addEventListener('click', function() {
+      userName = document.getElementById('userNameInput').value;
+      walletSlot = document.getElementById('slotInput').value;
+      userDid = document.getElementById('didInput').value; // Save DID Number
+      
+      //const kycUrl = `https://quantumatter.web.app/QVisa/${userDid}`;
+      const kycUrl = `https://did-rm.web.app/vc/${userDid}`;
+      document.getElementById('kycLink').innerHTML = 
+        `<a href="${kycUrl}" target="_blank" class="link-button">-- Access KYC Portal --</a>`;
+      
+      logTransaction(`Setup updated: User=${userName}, Slot=${walletSlot}, DID=${userDid}`);
+    });
+
+    // Login button
+    document.getElementById('loginBtn').addEventListener('click', async function() {
+      const pin = document.getElementById('passkeyInput').value;
+      if (!pin) {
+        alert('Please enter your passkey');
+        return;
+      }
+      
+      walletPin = pin;
+      
+      // Update wallet status immediately when PIN is entered
+      checkWalletStatus();
+      
+      this.classList.add('active');
+      this.textContent = 'Loading...';
+      
+      try {
+        // Load balances for all cryptocurrencies
+        await loadBalances();
+        
+        if (!senderAddr) {
+          alert('Failed to load any wallet addresses');
+          this.classList.remove('active');
+          this.textContent = 'Access Quantum-Safe Wallet';
+          walletPin = ''; // Clear pin on error
+          checkWalletStatus(); // Update status
+          return;
+        }
+        
+        // Hide login modal and proceed
+        document.getElementById('loginModal').style.display = 'none';
+        
+        // Show scroll down button and auto scroll
+        document.getElementById('scrollDown1').style.display = 'flex';
+        setTimeout(() => showPage(1), 1000);
+        
+        this.textContent = 'Wallet Connected';
+        
+        // Final wallet status check after successful load
+        checkWalletStatus();
+      } catch (error) {
+        alert('Error loading wallet: ' + error.message);
+        this.classList.remove('active');
+        this.textContent = 'Access Quantum-Safe Wallet';
+        walletPin = ''; // Clear pin on error
+        checkWalletStatus(); // Update status
+      }
+    });
+
+    // Scroll button event listeners
+    document.getElementById('scrollDown1').addEventListener('click', () => {
+      if (walletPin && senderAddr) {
+        showPage(1);
+      } else {
+        alert('Please complete login first');
+      }
+    });
+
+    document.getElementById('scrollUp2').addEventListener('click', () => showPage(0));
+    document.getElementById('scrollDown2').addEventListener('click', () => {
+      if (selectedCrypto) {
+        updateTransactionHeader();
+        showPage(2);
+      } else {
+        alert('Please select a cryptocurrency first');
+      }
+    });
+
+    document.getElementById('scrollUp3').addEventListener('click', () => showPage(1));
+    document.getElementById('scrollDown3').addEventListener('click', () => showPage(3));
+    document.getElementById('scrollUp4').addEventListener('click', () => showPage(2));
+
+    // Balance page - Action buttons
+    document.getElementById('receiveBtn').addEventListener('click', () => {
+      if (!selectedCrypto) {
+        alert('Please select a cryptocurrency first');
+        return;
+      }
+      
+      const balance = cryptoBalances[selectedCrypto];
+      if (!balance || !balance.address || balance.address === 'Not loaded') {
+        alert('Address not loaded for selected cryptocurrency');
+        return;
+      }
+      
+      const crypto = CRYPTOS[selectedCrypto];
+      openQrModal(balance.address, crypto.name);
+    });
+
+    document.getElementById('payBtn').addEventListener('click', () => {
+      if (selectedCrypto) {
+        updateTransactionHeader();
+        document.getElementById('scrollDown2').style.display = 'flex';
+        showPage(2);
+      } else {
+        alert('Please select a cryptocurrency first');
+      }
+    });
+
+    // Transaction page - Gas, Sign, Send buttons
+    document.getElementById('gasBtn').addEventListener('click', async () => {
+      if (selectedCrypto && senderAddr) {
+        document.getElementById('gasBtn').classList.add('active');
+        await fetchGasData(selectedCrypto);
+        document.getElementById('gasBtn').classList.remove('active');
+      } else {
+        alert('Please select cryptocurrency and ensure wallet is loaded');
+      }
+    });
+
+    document.getElementById('signBtn').addEventListener('click', async () => {
+      document.getElementById('signBtn').classList.add('active');
+      await signTransaction();
+      document.getElementById('signBtn').classList.remove('active');
+    });
+
+    document.getElementById('sendBtn').addEventListener('click', async () => {
+      document.getElementById('sendBtn').classList.add('active');
+      await broadcastTransaction();
+      document.getElementById('sendBtn').classList.remove('active');
+    });
+
+    // Proof page - Listen to Quantum Proof button
+    document.getElementById('listenBtn').addEventListener('click', () => {
+      if (isListening) {
+        isListening = false;
+        document.getElementById('listenBtn').textContent = 'Listen to Quantum Proof';
+        document.getElementById('listenBtn').classList.remove('active');
+        appendBlockchainLog('Stopped listening to blockchain events', 'error');
+      } else {
+        isListening = true;
+        document.getElementById('listenBtn').textContent = 'Stop Listening to Quantum Proof';
+        document.getElementById('listenBtn').classList.add('active');
+        appendBlockchainLog('Started listening to blockchain events...', 'block');
+        
+        // Start polling for blocks
+        const pollInterval = setInterval(() => {
+          if (!isListening) {
+            clearInterval(pollInterval);
+            return;
+          }
+          pollForBlocks();
+        }, BESU_POLLING_TIMEOUT); // Poll every 5 seconds
+      }
+    });
+
+    // Blockchain Listener (from pqcBesu-Console.html)
+    async function pollForBlocks() {
+      try {
+        const currentBlockNumber = await web3Besu.eth.getBlockNumber();
+        if (lastBlockNumber === null) {
+          lastBlockNumber = currentBlockNumber;
+          return;
+        }
+        if (currentBlockNumber > lastBlockNumber) {
+          for (let bn = lastBlockNumber + 1; bn <= currentBlockNumber; bn++) {
+            const block = await web3Besu.eth.getBlock(bn, true);
+            appendBlockchainLog(`New Block Mined: #${block.number} (Hash: ${truncateHex(block.hash)})`, 'block');
+
+            for (const tx of block.transactions) {
+              if (tx && tx.value && tx.value !== '0') {
+                const from = tx.from;
+                const to = tx.to;
+                const valueEth = web3Besu.utils.fromWei(tx.value, 'ether');
+                appendBlockchainLog(`Ether Tx: ${valueEth} ETH from ${truncateHex(from)} to ${truncateHex(to)} (Tx: ${truncateHex(tx.hash)})`, 'ether');
+              }
+
+              const receipt = await web3Besu.eth.getTransactionReceipt(tx.hash);
+              if (receipt && receipt.logs && receipt.logs.length > 0) {
+                for (const log of receipt.logs) {
+                  if (log.topics && log.topics[0] === ERC_TRANSFER_SIG) {
+                    const from = '0x' + log.topics[1].slice(26);
+                    const to = '0x' + log.topics[2].slice(26);
+                    const value = web3Besu.utils.hexToNumberString(log.data);
+                    appendBlockchainLog(`Token Transfer: contract ${truncateHex(log.address)}, from ${truncateHex(from)} to ${truncateHex(to)}, value/tokenId ${value} (Tx: ${truncateHex(tx.hash)})`, 'token');
+                  }
+                  if (log.address.toLowerCase() === ADDRESS_MINER_CONTRACT.toLowerCase()) {
+                    appendBlockchainLog(`Quantum Proof Contract Event: ${JSON.stringify(log, null, 2)}`, 'contract');
+                  }
+                }
+              }
+            }
+          }
+          lastBlockNumber = currentBlockNumber;
+        }
+      } catch (error) {
+        appendBlockchainLog(`Polling error: ${error.message}`, 'error');
+      }
+    }    
+
+    // Reload balances button
+    document.getElementById('reloadBalancesBtn').addEventListener('click', async () => {
+      await reloadAllBalances();
+    });
+
+    // Modal close on background click
+    document.querySelectorAll('.modal').forEach(modal => {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          modal.style.display = 'none';
+        }
+      });
+    });
+
+    // Prevent form submission on Enter key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+      }
+    });
+
+    // Disable by default
+    document.getElementById('signBtn').disabled = true;
+    document.getElementById('sendBtn').disabled = true;
+
+    // Enable SIGN> after GAS>
+    document.getElementById('gasBtn').addEventListener('click', () => {
+      document.getElementById('signBtn').disabled = false;
+    });
+
+    // Enable SEND> after SIGN>
+    document.getElementById('signBtn').addEventListener('click', () => {
+      document.getElementById('sendBtn').disabled = false;
+    });
+
+    // Fetch user slot from userAccounts/user-slot.json
+    async function fetchUserSlot(userAccount) {
+      try {
+        const response = await fetch('./userAccounts/user-slot.json');
+        const data = await response.json();
+        return data[userAccount]?.slot || null;
+      } catch (error) {
+        console.error('Error fetching user slot:', error);
+        return null;
+      }
+    }
+
+    // Fetch user details from slot-specific JSON file
+    async function fetchUserDetails(slot) {
+      try {
+        const response = await fetch(`./userAccounts/${slot}-slot.json`);
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error('Error fetching user details:', error);
+        return null;
+      }
+    }
+
+    // Handle login submission
+    document.getElementById('loginSubmitBtn').addEventListener('click', async () => {
+      const userAccount = document.getElementById('userAccountInput').value.trim();
+      const loginPassword = document.getElementById('loginPasswordInput').value.trim();
+      const loginError = document.getElementById('loginError');
+
+      if (!userAccount || !loginPassword) {
+        loginError.textContent = 'Please fill in both fields';
+        loginError.style.display = 'block';
+        return;
+      }
+
+      const slot = await fetchUserSlot(userAccount);
+      if (!slot) {
+        loginError.textContent = 'Invalid user account';
+        loginError.style.display = 'block';
+        return;
+      }
+
+      const userDetails = await fetchUserDetails(slot);
+      if (!userDetails || userDetails.loginpassword.CKA_VALUE !== loginPassword) {
+        loginError.textContent = 'Invalid login password';
+        loginError.style.display = 'block';
+        return;
+      }
+
+      // Save user, slot, and DID in app settings
+      userName = userDetails.user.CKA_LABEL;
+      walletSlot = userDetails.slot.CKA_ID;
+      userDid = userDetails.did.CKA_APPLICATION; // Save DID Number
+
+      // Hide login modal and proceed
+      document.getElementById('loginModal').style.display = 'none';
+      console.log(`Login successful: User=${userName}, Slot=${walletSlot}, DID=${userDid}`);
+    });
+
+    // Setup modal - Open and populate fields
+    function openSetupModal() {
+      document.getElementById('setupModal').style.display = 'flex';
+      document.getElementById('userNameInput').value = userName;
+      document.getElementById('slotInput').value = walletSlot;
+      document.getElementById('didInput').value = userDid; // Populate DID Number
+    }
+
+    function closeSetupModal() {
+      document.getElementById('setupModal').style.display = 'none';
+    }
+
+    // Ensure login modal is displayed at app startup
+    window.addEventListener('load', () => {
+      document.getElementById('loginModal').style.display = 'flex';
+    });
+
+    // Event listener for the logo image
+    document.querySelector('.logo-container img').addEventListener('click', function () {
+      document.getElementById('passkeyModal').style.display = 'flex';
+    });
+
+    // Event listener for the SEND button
+    document.getElementById('sendPasskeyBtn').addEventListener('click', function () {
+      const otpInput = document.getElementById('otpInput').value.trim();
+      if (!otpInput) {
+        alert('Please enter the passkey.');
+        return;
+      }
+      alert(`Passkey "${otpInput}" submitted successfully.`);
+      document.getElementById('passkeyModal').style.display = 'none';
+    });
+
+    // Event listener for the CANCEL button
+    document.getElementById('cancelPasskeyBtn').addEventListener('click', function () {
+      document.getElementById('passkeyModal').style.display = 'none';
+    });
+
+    // Add the new button Fetch Past Transactions
+    document.getElementById('proofPage').querySelector('.section').insertAdjacentHTML('beforeend', `
+      <button class="btn-primary" id="fetchTransactionsBtn">Fetch Past Transactions</button>
+    `);
+
+    const fetchBesuTransactions = async (address) => {
+      try {
+        
+        // calling chainlens-free at port 8090
+        const response = await fetch(`http://localhost:8090/accounts/${address}/transactions`);
+        const data = await response.json();
+
+        // Filter transactions with "Transaction Type: Transfer"
+        const transactions = data.data
+          .filter(tx => tx.transactionType === 'Transfer')
+          .slice(0, 10)
+          .map(tx => ({
+            hash: tx.hash || 'N/A',
+            from: tx.from || 'N/A',
+            to: tx.to || 'N/A',
+            value: tx.value ? (parseInt(tx.value) / 1e18).toFixed(6) : 'N/A',
+            blockNumber: tx.blockNumber || 'N/A',
+            timestampISO: tx.timestampISO || 'N/A',
+            transactionType: tx.transactionType || 'N/A',
+          }));
+
+        // Append each transaction to proof details using .log-entry.txdetails style
+        transactions.forEach((tx, index) => {
+          appendToProofDetails(`
+            📝 Transaction ${index + 1}:<br>
+            From: ${tx.from}<br>
+            To: ${tx.to}<br>
+            Value: ${tx.value} ETH<br>
+            TxHash: ${tx.hash}<br>
+            Block: ${tx.blockNumber}<br>
+            Timestamp: ${tx.timestampISO}<br>
+            Transaction Type: ${tx.transactionType}
+          `, 'txdetails');
+        });
+
+        if (transactions.length === 0) {
+          appendToProofDetails('ℹ️ No recent Besu transactions found.', 'txdetails');
+        }
+
+        return transactions.length; // Return the number of transactions
+      } catch (error) {
+        appendToProofDetails(`❌ Error fetching Besu transactions: ${error.message}`, 'txdetails');
+        return 0; // Return 0 if an error occurs
+      }
+    };
+
+    const fetchUSDCqTokenTransfers = async (contractAddress) => {
+      try {
+        const response = await fetch(`http://localhost:8090/tokens/${contractAddress}/transactions`);
+        const data = await response.json();
+
+        const transactions = data.data.slice(0, 10).map(tx => ({
+          hash: tx.hash || 'N/A',
+          from: tx.from || 'N/A',
+          to: tx.to || 'N/A',
+          value: tx.value || 'N/A',
+          timestampISO: tx.timestampISO || 'N/A',
+          transactionType: tx.transactionType || 'N/A',
+          functionMeta: {
+            functionName: tx.functionMeta?.functionName || 'N/A',
+          },
+        }));
+
+        transactions.forEach((tx, index) => {
+          appendToProofDetails(`
+            📝 Token Transfer ${index + 1}:<br>
+            From: ${tx.from}<br>
+            To: ${tx.to}<br>
+            Value: ${tx.value}<br>
+            TxHash: ${tx.hash}<br>
+            Timestamp: ${tx.timestampISO}<br>
+            Transaction Type: ${tx.transactionType}<br>
+            Function Name: ${tx.functionMeta.functionName}
+          `, 'txdetails');
+        });
+
+        if (transactions.length === 0) {
+          appendToProofDetails('ℹ️ No recent USDCq token transfers found.', 'txdetails');
+        }
+
+        return transactions.length;
+      } catch (error) {
+        appendToProofDetails(`❌ Error fetching USDCq token transfers: ${error.message}`, 'txdetails');
+        return 0;
+      }
+    };
+
+    const fetchEthereumTransactions = async (address) => {
+      try {
+        const response = await fetch(`https://api.etherscan.io/api?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&sort=desc`);
+        const data = await response.json();
+
+        if (data.status === "1" && Array.isArray(data.result)) {
+          const transactions = data.result.slice(0, 10).map(tx => ({
+            hash: tx.hash || 'N/A',
+            from: tx.from || 'N/A',
+            to: tx.to || 'N/A',
+            value: tx.value ? (parseInt(tx.value) / 1e18).toFixed(6) : 'N/A',
+            blockNumber: tx.blockNumber || 'N/A',
+            timestampISO: tx.timestampISO || 'N/A',
+            transactionType: tx.input === '0x' ? 'Transfer' : 'ContractCall',
+          }));
+
+          transactions.forEach((tx, index) => {
+            appendToProofDetails(`
+              📝 Transaction ${index + 1}:<br>
+              From: ${tx.from}<br>
+              To: ${tx.to}<br>
+              Value: ${tx.value} ETH<br>
+              TxHash: ${tx.hash}<br>
+              Block: ${tx.blockNumber}<br>
+              Timestamp: ${tx.timestampISO}<br>
+              Transaction Type: ${tx.transactionType}
+            `, 'txdetails');
+          });
+
+          if (transactions.length === 0) {
+            appendToProofDetails('ℹ️ No recent Ethereum transactions found.', 'txdetails');
+          }
+
+          return transactions.length;
+        } else if (data.status === "0" && data.message === "NOTOK") {
+          if (data.result && data.result.includes("rate limit")) {
+            appendToProofDetails('❌ Etherscan API rate limit exceeded. Please try again later.', 'txdetails');
+          } else {
+            // Fallback method: Use Web3 to fetch recent blocks and extract transactions
+            try {
+              const web3 = new Web3(API_ENDPOINTS.ethereum);
+              const latestBlock = await web3.eth.getBlockNumber();
+              const recentTxs = [];
+
+              // Check last 100 blocks for transactions involving this address
+              for (let i = 0; i < 100 && recentTxs.length < 10; i++) {
+                const blockNum = latestBlock - i;
+                const block = await web3.eth.getBlock(blockNum, true);
+
+                if (block && block.transactions) {
+                  const addressTxs = block.transactions.filter(tx => {
+                    const fromMatch = tx.from && tx.from.toLowerCase() === address.toLowerCase();
+                    const toMatch = tx.to && tx.to.toLowerCase() === address.toLowerCase();
+                    return fromMatch || toMatch;
+                  });
+                  recentTxs.push(...addressTxs);
+                }
+              }
+
+              const transactions = recentTxs.slice(0, 10);
+
+              // Format Ethereum transactions from Web3
+              transactions.forEach((tx, index) => {
+                const valueEth = (parseInt(tx.value) / 1e18).toFixed(6);
+                appendToProofDetails(`
+                  📝 Transaction ${index + 1}:<br>
+                  From: ${tx.from || 'Unknown'}<br>
+                  To: ${tx.to || 'Contract Creation'}<br>
+                  Value: ${valueEth} ETH<br>
+                  TxHash: ${tx.hash}<br>
+                  Block: ${tx.blockNumber}<br>
+                `, 'txdetails');
+              });
+
+              if (transactions.length === 0) {
+                appendToProofDetails('ℹ️ No recent Ethereum transactions found in last 10 blocks.', 'txdetails');
+              }
+
+              return transactions.length;
+            } catch (web3Error) {
+              appendToProofDetails(`❌ Error accessing Ethereum blockchain: ${web3Error.message}`, 'txdetails');
+              return 0;
+            }
+          }
+        } else {
+          appendToProofDetails(`❌ Unexpected Etherscan response: ${data.message || 'Unknown error'}`, 'txdetails');
+          return 0;
+        }
+      } catch (error) {
+        appendToProofDetails(`❌ Error fetching Ethereum transactions: ${error.message}`, 'txdetails');
+        return 0;
+      }
+    };
+
+    const fetchBitcoinTransactions = async (address) => {
+      try {
+        const response = await fetch(`${API_ENDPOINTS.bitcoin}/address/${address}/txs`);
+        const transactions = await response.json();
+
+        if (Array.isArray(transactions)) {
+          transactions.slice(0, 10).forEach((tx, index) => {
+            const inputValue = tx.vin?.[0]?.prevout?.value || 0;
+            const outputValue = tx.vout?.[0]?.value || 0;
+            const fromAddr = tx.vin?.[0]?.prevout?.scriptpubkey_address || 'Unknown';
+            const toAddr = tx.vout?.[0]?.scriptpubkey_address || 'Unknown';
+
+            appendToProofDetails(`
+              📝 Transaction ${index + 1}:<br>
+              From: ${fromAddr}<br>
+              To: ${toAddr}<br>
+              Value: ${(outputValue / 100000000).toFixed(8)} BTC<br>
+              TxHash: ${tx.txid}<br>
+              Status: ${tx.status?.confirmed ? 'Confirmed' : 'Unconfirmed'}
+            `, 'txdetails');
+          });
+
+          if (transactions.length === 0) {
+            appendToProofDetails('ℹ️ No Bitcoin transactions found.', 'txdetails');
+          }
+
+          return transactions.length;
+        } else {
+          appendToProofDetails('❌ Error: Invalid Bitcoin transaction data format.', 'txdetails');
+          return 0;
+        }
+      } catch (error) {
+        appendToProofDetails(`❌ Error fetching Bitcoin transactions: ${error.message}`, 'txdetails');
+        return 0;
+      }
+    };
+
+    const fetchSolanaTransactions = async (address) => {
+      try {
+        const response = await fetch(API_ENDPOINTS.solana, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            method: "getSignaturesForAddress",
+            params: [address, { limit: 10 }],
+            id: 1
+          })
+        });
+        const data = await response.json();
+
+        if (data.result && Array.isArray(data.result)) {
+          const transactions = data.result;
+
+          transactions.forEach((tx, index) => {
+            appendToProofDetails(`
+              📝 Transaction ${index + 1}:<br>
+              Signature: ${tx.signature}<br>
+              Slot: ${tx.slot}<br>
+              Status: ${tx.err ? 'Failed' : 'Success'}
+            `, 'txdetails');
+          });
+
+          if (transactions.length === 0) {
+            appendToProofDetails('ℹ️ No Solana transactions found.', 'txdetails');
+          }
+
+          return transactions.length;
+        } else {
+          appendToProofDetails(`❌ Error fetching Solana transactions: ${data.error?.message || 'Invalid response format'}`, 'txdetails');
+          return 0;
+        }
+      } catch (error) {
+        appendToProofDetails(`❌ Error fetching Solana transactions: ${error.message}`, 'txdetails');
+        return 0;
+      }
+    };
+
+    // Add functionality for fetch transaction button
+    document.getElementById('fetchTransactionsBtn').addEventListener('click', async () => {
+      if (!selectedCrypto || !cryptoBalances[selectedCrypto] || !cryptoBalances[selectedCrypto].address) {
+        appendToProofDetails('❌ Error: No cryptocurrency selected or address not loaded.', 'txdetails');
+        return;
+      }
+
+      const crypto = CRYPTOS[selectedCrypto];
+      const address = cryptoBalances[selectedCrypto].address;
+      const contractAddress = ADDRESS_USDCQ_CONTRACT;
+
+      appendToProofDetails(`🔍 Fetching past transactions for ${crypto.name} (${address})...`, 'txdetails');
+
+      let transactionCount = 0;
+
+      if (selectedCrypto === 'besu') {
+        transactionCount = await fetchBesuTransactions(address);
+      } else if (selectedCrypto === 'usdcq') {
+        transactionCount = await fetchUSDCqTokenTransfers(contractAddress);
+      } else if (selectedCrypto === 'ethereum') {
+        transactionCount = await fetchEthereumTransactions(address);
+      } else if (selectedCrypto === 'bitcoin') {
+        transactionCount = await fetchBitcoinTransactions(address);
+      } else if (selectedCrypto === 'solana') {
+        transactionCount = await fetchSolanaTransactions(address);
+      }
+
+      if (transactionCount > 0) {
+        appendToProofDetails(`✅ Successfully fetched ${transactionCount} transactions for ${crypto.name}.`, 'txdetails');
+      } else {
+        appendToProofDetails(`ℹ️ No transactions found for ${crypto.name}.`, 'txdetails');
+      }
+    });
+
+    // Helper function to append logs to proofDetails with conditional font styling
+    function appendToProofDetails(message, styleClass = '') {
+      const proofDetails = document.getElementById('proofDetails');
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${styleClass}`; // Apply the provided CSS style class
+      entry.innerHTML = message; // Use innerHTML to allow HTML formatting
+      proofDetails.appendChild(entry);
+      proofDetails.scrollTop = proofDetails.scrollHeight; // Auto-scroll to bottom
+    }
+  </script>
+
+
+    </div>
+  </div>
+
+</body>
+</html>
+
