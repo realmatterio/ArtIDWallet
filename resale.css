@@ -1050,6 +1050,12 @@ body {
 .rs-open-wallet:disabled:hover { background: #e6e4e1; }
 .rs-registry-card { border-color: #1c7a52; }
 .rs-open-registry { margin-top: auto; cursor: pointer; }
+.rs-back-portal {
+  border-color: #1c7a52;
+  background: #1c7a52;
+  color: #fff;
+}
+.rs-back-portal:hover { background: #176642; }
 .rs-wallet-actions.is-inactive { opacity: .48; }
 .rs-wallet-actions.is-inactive .rs-pane { filter: grayscale(1); }
 .rs-metadata-entry { display: flex; align-items: center; gap: 8px; margin-top: 8px; }

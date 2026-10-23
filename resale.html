@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
-  <link rel="stylesheet" href="resale.css?v=12">
+  <link rel="stylesheet" href="resale.css?v=13">
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.5/dist/ethers.umd.min.js"></script>
@@ -31,7 +31,7 @@
     </button>
     <div class="rs-topbar-actions">
       <span class="rs-demo-badge"><span aria-hidden="true"></span> Demo · payment simulation · qBESU</span>
-      <button class="rs-topbtn" id="backBtn" type="button" hidden>&larr; Portal</button>
+      <button class="rs-topbtn rs-back-portal" id="backBtn" type="button" hidden>&larr; Portal</button>
       <button class="rs-topbtn" id="lockWalletBtn" type="button" hidden>Lock all wallets</button>
       <button class="rs-topbtn" id="rsReset" type="button">Reset</button>
     </div>
@@ -994,13 +994,14 @@
     if (state.view === 'registry') { renderRegistry(); renderLedger(); }
   }
 
-  async function refreshPublicRegistry() {
+  async function refreshPublicRegistry(returnToPortalOnSuccess) {
     const button = $('refreshChainBtn');
     button.disabled = true;
     showChainStatus('Loading public registry data from qBESU.', 'pending');
     try {
       await refreshChainState();
       showChainStatus('Public registry data loaded from qBESU.', 'success');
+      if (returnToPortalOnSuccess) showView('portal');
     } catch (error) {
       showChainStatus('Could not load public registry data: ' + error.message, 'error');
     } finally {
@@ -1261,7 +1262,7 @@
 
     reset();
     showView('registry');
-    refreshPublicRegistry();
+    refreshPublicRegistry(true);
   });
 </script>
 
