@@ -255,6 +255,9 @@ omitted from the v2 app.
 ## E. Publish and verify
 
 1. Enable GitHub Pages and configure its deployment environment if required.
+   Publish the project root (or ensure the published artifact includes the
+   root `index.html` and app assets). The root `index.html` redirects visitors
+   to `resale.html` automatically.
 2. Review `.github/workflows/artidwallet-pages.yml`; it publishes static
    assets only and does not deploy Firebase Functions.
 3. Open the site over HTTPS. The public registry loads automatically from
