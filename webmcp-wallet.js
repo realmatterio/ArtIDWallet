@@ -1830,8 +1830,14 @@
   }
 
   // For agent bridges and tests in browsers without navigator.modelContext.
+  // listAllTools is for MCP clients that read the tool list once: every tool,
+  // with where it can be used, while calls stay limited to the current page.
   window.webmcpWallet = Object.freeze({
     listTools: () => availableTools().map(describeTool),
+    listAllTools: () => TOOLS.map(tool => Object.assign(describeTool(tool), {
+      description: '[' + (tool.pages.length === PAGES.length ? 'any page' : tool.pages.join('/') + ' page') +
+        (tool.roles ? ', ' + tool.roles.join('/') + ' role' : '') + '] ' + tool.description
+    })),
     callTool: (name, args) => callTool(name, args, null),
     getState: () => walletSnapshot()
   });
