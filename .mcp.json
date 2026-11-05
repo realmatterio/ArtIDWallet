@@ -1,0 +1,6 @@
+{
+  "mcpServers": {
+    "artid-wallet":   { "command": "node", "args": ["scripts/webmcp-mcp-server.mjs"] },
+    "art-id-registry": { "command": "node", "args": ["scripts/art-id-registry-mcp.mjs"] }
+  }
+}

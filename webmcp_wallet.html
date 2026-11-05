@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#f5f6f8">
+  <meta name="description" content="ArtID wallet for artists and collectors that an AI agent can operate through WebMCP tools.">
+  <title>ArtID WebMCP Wallet</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="resale.css?v=20">
+  <link rel="stylesheet" href="webmcp-wallet.css?v=2">
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.5/dist/ethers.umd.min.js"></script>
+  <script src="addrQrOverlay.js?v=9"></script>
+  <script src="artid-config.js?v=4"></script>
+  <script src="artid-chain.js?v=4"></script>
+  <script src="webmcp-wallet.js?v=3" defer></script>
+</head>
+<body class="wm">
+  <a class="rs-skip" href="#main">Skip to content</a>
+  <header class="rs-topbar wm-topbar">
+    <div class="rs-brand">
+      <span class="rs-brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="3" width="18" height="18" rx="2.5"/><path d="m3 16 5-5 4 4 3-3 6 6"/><circle cx="9" cy="8.5" r="1.5"/>
+        </svg>
+      </span>
+      <span class="rs-brand-text">
+        <strong>ArtID Wallet</strong>
+        <span id="brandSub">WebMCP · AI agent ready</span>
+      </span>
+    </div>
+
+    <div class="rs-topbar-actions">
+      <button class="rs-switch rs-mode-switch" id="modeSwitch" type="button" role="switch" aria-checked="true" aria-label="Agent mode" data-href="resale.html" title="Switch to the human wallet">
+        <span class="rs-mode-label">Human</span>
+        <span class="rs-switch-track" aria-hidden="true"><span></span></span>
+        <span class="rs-mode-label">Agent</span>
+      </button>
+      <button class="rs-btn rs-btn-quiet rs-btn-sm rs-icon-btn wm-agent-btn" id="agentBtn" type="button" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9.5 16.5h5"/></svg>
+        <span class="wm-agent-dot" aria-hidden="true"></span>
+        <span class="rs-btn-label">AI agent</span>
+      </button>
+      <button class="rs-btn rs-btn-quiet rs-btn-sm rs-icon-btn" id="logoutBtn" type="button" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h4.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H14"/><path d="M10 16l-4-4 4-4M6 12h10"/></svg>
+        <span class="rs-btn-label">Log out</span>
+      </button>
+    </div>
+
+    <nav class="wm-steps" aria-label="Wallet steps">
+      <ol>
+        <li><button type="button" data-step="login"><span class="wm-step-num">1</span><span class="wm-step-label">Log in</span></button></li>
+        <li><button type="button" data-step="role"><span class="wm-step-num">2</span><span class="wm-step-label">Role</span></button></li>
+        <li><button type="button" data-step="wallet"><span class="wm-step-num">3</span><span class="wm-step-label">Wallet</span></button></li>
+        <li><button type="button" data-step="registry"><span class="wm-step-num">4</span><span class="wm-step-label">Registry</span></button></li>
+      </ol>
+    </nav>
+  </header>
+
+  <div id="chainStatus" class="rs-chain-status" role="status" aria-live="polite" hidden></div>
+
+  <main class="rs-shell" id="main">
+
+    <!-- ===================== 1. LOG IN ===================== -->
+    <section class="rs-view wm-page" id="loginPage">
+      <header class="rs-page-head">
+        <p class="rs-eyebrow">Step 1 of 4 · Log in</p>
+        <h1 tabindex="-1">Who is using the wallet?</h1>
+        <p>Choose your account and unlock it with its ICCHSM wallet PIN.</p>
+      </header>
+
+      <form class="wm-card wm-login" id="loginForm" novalidate>
+        <fieldset class="wm-choices">
+          <legend>Account</legend>
+          <label class="wm-choice rs-region-gba">
+            <input type="radio" name="account" value="alice" checked>
+            <span class="wm-avatar" aria-hidden="true">A</span>
+            <span class="wm-choice-text"><strong>Alice</strong><span>China GBA</span></span>
+            <span class="wm-choice-check" aria-hidden="true"></span>
+          </label>
+          <label class="wm-choice rs-region-hk">
+            <input type="radio" name="account" value="bob">
+            <span class="wm-avatar" aria-hidden="true">B</span>
+            <span class="wm-choice-text"><strong>Bob</strong><span>Hong Kong</span></span>
+            <span class="wm-choice-check" aria-hidden="true"></span>
+          </label>
+        </fieldset>
+        <div class="rs-field">
+          <label for="pinInput">Wallet PIN <span class="rs-optional">ICCHSM</span></label>
+          <input class="rs-input" id="pinInput" type="password" inputmode="numeric" autocomplete="off" required>
+        </div>
+        <button class="rs-btn rs-btn-primary rs-btn-block rs-btn-lg" id="loginBtn" type="submit">Unlock wallet</button>
+        <p class="rs-hint">Your signing key stays in the ICCHSM hardware wallet. The PIN unlocks it for this session only.</p>
+      </form>
+
+      <p class="wm-sync" id="syncState"><span class="rs-portal-status-icon" aria-hidden="true"></span>Connecting to qBESU…</p>
+    </section>
+
+    <!-- ===================== 2. ROLE ===================== -->
+    <section class="rs-view wm-page" id="rolePage" hidden>
+      <header class="rs-page-head">
+        <p class="rs-eyebrow">Step 2 of 4 · Role</p>
+        <h1 tabindex="-1" id="roleHeading">Choose a role</h1>
+        <p>Alice and Bob can each act as an artist or a collector. You can switch role at any time.</p>
+      </header>
+
+      <div class="wm-roles">
+        <button class="wm-role" type="button" data-role="artist">
+          <span class="wm-role-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.8 1.6-1.6 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-.9.7-1.6 1.6-1.6H16a5 5 0 0 0 5-5C21 6.5 17 3 12 3Z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/></svg>
+          </span>
+          <span class="wm-role-text"><strong>Artist</strong><span>Register artworks and sell them with a payment code.</span></span>
+        </button>
+        <button class="wm-role" type="button" data-role="collector">
+          <span class="wm-role-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="m3 16 5-5 4 4 3-3 6 6"/><circle cx="15.5" cy="8.5" r="1.2"/></svg>
+          </span>
+          <span class="wm-role-text"><strong>Collector</strong><span>Load a payment code, pay, and receive the artwork.</span></span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ===================== 3. WALLET ===================== -->
+    <section class="rs-view rs-account wm-page" id="walletPage" hidden>
+      <div class="rs-idcard">
+        <div class="rs-wallet-card">
+          <div class="rs-wallet-card-top">
+            <span class="rs-region-chip"><span aria-hidden="true"></span><span id="walletRegion"></span></span>
+            <span class="rs-listing-status" id="walletListingStatus"></span>
+          </div>
+          <div class="rs-wallet-card-id">
+            <span class="rs-idcard-avatar" id="walletAvatar"></span>
+            <div>
+              <p class="rs-wallet-role" id="walletRole"></p>
+              <h1 class="rs-idcard-name" id="walletName" tabindex="-1"></h1>
+            </div>
+          </div>
+          <dl class="rs-wallet-card-facts">
+            <div>
+              <dt>Wallet address</dt>
+              <dd class="rs-copy-row">
+                <span id="walletEoa">&mdash;</span>
+                <button class="rs-copy" type="button" id="copyAddressBtn" aria-label="Copy wallet address">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8"/></svg>
+                </button>
+              </dd>
+            </div>
+            <div><dt>Collector ID</dt><dd id="walletDid">&mdash;</dd></div>
+            <div><dt>Collection</dt><dd id="walletWorkCount">&mdash;</dd></div>
+          </dl>
+        </div>
+        <details class="rs-profile-form" id="profileManage">
+          <summary>Edit profile</summary>
+          <div class="rs-field">
+            <label for="displayNameInput">Display name</label>
+            <input class="rs-input" id="displayNameInput" maxlength="80">
+          </div>
+          <div class="rs-metadata-entry" id="metadataEntry" hidden>
+            <div class="rs-field">
+              <label for="metadataInput">Profile metadata URI</label>
+              <input class="rs-input" id="metadataInput" maxlength="512" placeholder="https:// or ipfs://">
+            </div>
+            <button class="rs-btn" id="saveProfileBtn" type="button">Save profile</button>
+          </div>
+          <div class="rs-profile-actions">
+            <button class="rs-btn rs-btn-primary" id="registerProfileBtn" type="button">Register collector</button>
+            <button class="rs-btn rs-btn-quiet" id="profileListingToggle" type="button" hidden></button>
+          </div>
+          <details id="metadataHistory" class="rs-metadata-history rs-disclosure" hidden></details>
+        </details>
+      </div>
+
+      <div id="unlistedNotice" class="rs-unlisted-notice" hidden>This profile is unlisted, so other wallet actions are paused. Use <b>List collector</b> above to relist.</div>
+      <div id="walletActions" class="rs-wallet-actions rs-split">
+        <section class="rs-section rs-area-main">
+          <div class="rs-section-head">
+            <h2>Collection</h2>
+            <p id="collectionHint"></p>
+          </div>
+          <div class="rs-collection" id="collection"></div>
+        </section>
+
+        <aside class="rs-section rs-panel rs-area-side" aria-labelledby="sideHeading">
+          <div class="rs-section-head">
+            <h2 id="sideHeading"></h2>
+            <p id="sideHint"></p>
+          </div>
+          <div class="rs-panel-body" id="sidePanel"></div>
+        </aside>
+
+        <section class="rs-section rs-panel rs-area-extra" id="createSection" aria-labelledby="createHeading">
+          <div class="rs-section-head">
+            <h2 id="createHeading">Register a new artwork</h2>
+            <p>Create an artwork record and its ID token in your wallet.</p>
+          </div>
+          <div class="rs-form-grid">
+            <div class="rs-field">
+              <label for="artworkTitleInput">Title <abbr title="required">*</abbr></label>
+              <input class="rs-input" id="artworkTitleInput" maxlength="120" placeholder="Untitled (Blue), 2026">
+            </div>
+            <div class="rs-field">
+              <label for="artworkArtistInput">Artist</label>
+              <input class="rs-input" id="artworkArtistInput" maxlength="120" placeholder="Artist name">
+            </div>
+            <div class="rs-field rs-field-wide">
+              <label for="artworkIdInput">Artwork ID <span class="rs-optional">blank: derived from the title</span></label>
+              <input class="rs-input rs-input-mono" id="artworkIdInput" maxlength="96" placeholder="did:art:artwork:<keccak256 title>">
+            </div>
+            <div class="rs-field rs-field-wide">
+              <label for="artworkImageInput">Image URL <span class="rs-optional">optional</span></label>
+              <input class="rs-input" id="artworkImageInput" maxlength="512" placeholder="https:// or ipfs://">
+            </div>
+            <div class="rs-field rs-field-wide">
+              <label for="artworkHashInput">Content hash <span class="rs-optional">optional</span></label>
+              <input class="rs-input rs-input-mono" id="artworkHashInput" maxlength="128" placeholder="0x…">
+            </div>
+          </div>
+          <p class="rs-hint">Creates an ERC-721 ID token in this wallet. qBESU confirmation may take about a minute.</p>
+          <div class="rs-form-actions">
+            <button class="rs-btn rs-btn-primary" id="createArtworkBtn" type="button">Register artwork</button>
+          </div>
+        </section>
+      </div>
+
+      <button class="wm-next" id="toRegistryBtn" type="button">
+        <span><span class="rs-eyebrow">Step 4 of 4</span><strong>Open the ArtID Registry</strong><span>Every artwork, collector and transfer on qBESU.</span></span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+    </section>
+
+    <!-- ===================== 4. REGISTRY ===================== -->
+    <section class="rs-view wm-page" id="registryPage" hidden>
+      <header class="rs-page-head rs-page-head-row">
+        <div>
+          <p class="rs-eyebrow">Step 4 of 4 · Public registry, synced via Astron (星火鏈)</p>
+          <h1 tabindex="-1">ArtID Registry</h1>
+          <p>Artworks, collectors and transfers on qBESU.</p>
+        </div>
+        <div class="wm-head-actions">
+          <button class="rs-btn rs-btn-quiet" id="backToWalletBtn" type="button">Back to wallet</button>
+          <button class="rs-btn" id="refreshChainBtn" type="button">Refresh</button>
+        </div>
+      </header>
+
+      <section class="rs-section">
+        <div class="rs-section-head rs-section-head-row">
+          <h2>Artworks <span class="rs-count" id="artworkCount"></span></h2>
+          <button class="rs-switch" id="hideUnlistedToggle" type="button" role="switch" aria-checked="true" hidden>
+            <span class="rs-switch-track" aria-hidden="true"><span></span></span>
+            <span>Hide unlisted <span class="rs-count" id="unlistedCount"></span></span>
+          </button>
+        </div>
+        <div class="rs-gallery" id="registryBody"></div>
+      </section>
+
+      <section class="rs-section">
+        <div class="rs-section-head">
+          <h2>Collectors <span class="rs-count" id="collectorCount"></span></h2>
+        </div>
+        <div class="rs-people" id="collectorRegistryBody"></div>
+      </section>
+
+      <section class="rs-section">
+        <div class="rs-section-head">
+          <h2>Ownership history <span class="rs-count" id="transferCount"></span></h2>
+          <p>Newest transfers first.</p>
+        </div>
+        <ol class="rs-timeline" id="ledgerBody"></ol>
+      </section>
+    </section>
+
+  </main>
+  <footer class="rs-footer">© <a href="https://www.realmatter.io" target="_blank" rel="noopener noreferrer">Real Matter Technology Limited</a></footer>
+
+  <!-- An agent asks before anything is signed; the person holding the wallet answers here. -->
+  <dialog id="agentConfirm" class="rs-preview-dialog wm-dialog" aria-labelledby="confirmTitle">
+    <p class="rs-eyebrow">AI agent request</p>
+    <h2 id="confirmTitle"></h2>
+    <p id="confirmDetail" class="rs-hint"></p>
+    <dl class="rs-kv" id="confirmFacts"></dl>
+    <div class="wm-dialog-actions">
+      <button class="rs-btn" id="confirmDecline" type="button">Decline</button>
+      <button class="rs-btn rs-btn-primary" id="confirmApprove" type="button">Approve</button>
+    </div>
+  </dialog>
+
+  <dialog id="agentPanel" class="rs-preview-dialog wm-dialog" aria-labelledby="agentPanelTitle">
+    <form method="dialog"><button class="rs-preview-close" aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button></form>
+    <p class="rs-eyebrow">WebMCP</p>
+    <h2 id="agentPanelTitle">AI agent control</h2>
+    <p class="rs-hint" id="agentMode"></p>
+    <details class="rs-disclosure" open>
+      <summary>Tools on this page <span class="rs-count" id="agentToolCount"></span></summary>
+      <ul class="wm-tool-list" id="agentTools"></ul>
+    </details>
+    <details class="rs-disclosure" open>
+      <summary>Recent agent activity</summary>
+      <ol class="wm-activity" id="agentActivity"></ol>
+    </details>
+  </dialog>
+</body>
+</html>
