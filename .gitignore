@@ -3,6 +3,7 @@ images/art/local/*
 !images/art/local/README.md
 
 .DS_Store
+.claude/
 node_modules/
 artifacts/
 cache/
