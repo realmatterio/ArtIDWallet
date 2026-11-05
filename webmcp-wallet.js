@@ -1899,6 +1899,12 @@
       }
     });
     $('agentBtn').addEventListener('click', () => { renderAgentPanel(); $('agentPanel').showModal(); });
+    // flip the knob, then open the human wallet once it has slid across
+    $('modeSwitch').addEventListener('click', event => {
+      const toggle = event.currentTarget;
+      toggle.setAttribute('aria-checked', String(toggle.getAttribute('aria-checked') !== 'true'));
+      setTimeout(() => { location.href = toggle.dataset.href; }, 220);
+    });
     $('confirmApprove').addEventListener('click', () => answerApproval(true));
     $('confirmDecline').addEventListener('click', () => answerApproval(false));
     // Escape closes the dialog; treat that as a decline, never an approval

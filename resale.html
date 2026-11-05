@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=JetBrains+Mono:wght@400;500&display=swap">
-  <link rel="stylesheet" href="resale.css?v=16">
+  <link rel="stylesheet" href="resale.css?v=20">
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.5/dist/ethers.umd.min.js"></script>
@@ -54,6 +54,11 @@
     </nav>
 
     <div class="rs-topbar-actions">
+      <button class="rs-switch rs-mode-switch" id="modeSwitch" type="button" role="switch" aria-checked="false" aria-label="Agent mode" data-href="webmcp_wallet.html" title="Switch to the AI agent wallet">
+        <span class="rs-mode-label">Human</span>
+        <span class="rs-switch-track" aria-hidden="true"><span></span></span>
+        <span class="rs-mode-label">Agent</span>
+      </button>
       <span class="rs-demo-badge" title="Demo: payments are simulated; artwork records and transfers are on qBESU"><span class="rs-demo-dot" aria-hidden="true"></span>Demo<span class="rs-demo-detail">· simulated payments · qBESU</span></span>
       <button class="rs-btn rs-btn-quiet rs-btn-sm rs-icon-btn" id="lockWalletBtn" type="button" hidden>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
@@ -238,7 +243,7 @@
             </div>
             <div class="rs-field rs-field-wide">
               <label for="artworkIdInput">Artwork ID <abbr title="required">*</abbr></label>
-              <input class="rs-input rs-input-mono" id="artworkIdInput" maxlength="96" placeholder="did:art:artwork:<keccak256 title>">
+              <input class="rs-input rs-input-mono" id="artworkIdInput" maxlength="96" placeholder="did:art:artwork:0x…">
             </div>
             <div class="rs-field rs-field-wide">
               <label for="artworkImageInput">Image URL <span class="rs-optional">optional</span></label>
@@ -1065,6 +1070,13 @@
   /* Re-registering a work after an edit leaves the old record unlisted, so
      the registry can hide unlisted records to avoid showing the same painting
      twice. A per-viewer preference, on by default. */
+  // flip the knob, then open the other wallet once it has slid across
+  function switchMode(event) {
+    const toggle = event.currentTarget;
+    toggle.setAttribute('aria-checked', String(toggle.getAttribute('aria-checked') !== 'true'));
+    setTimeout(() => { location.href = toggle.dataset.href; }, 220);
+  }
+
   const HIDE_UNLISTED_KEY = 'artid.hideUnlisted';
 
   function readHideUnlisted() {
@@ -1235,9 +1247,14 @@
     return collector && collector.displayName ? collector.displayName : shorten(address);
   }
 
+  let statusTimer;
+
   function showChainStatus(message, type, txHash) {
     const status = $('chainStatus');
     const kind = ['error', 'success', 'pending'].includes(type) ? type : 'info';
+    // hints clear themselves; progress, results and errors stay until replaced or dismissed
+    clearTimeout(statusTimer);
+    if (kind === 'info') statusTimer = setTimeout(() => { status.hidden = true; }, 5000);
     status.className = 'rs-chain-status ' + kind;
     status.replaceChildren();
     status.hidden = false;
@@ -1376,9 +1393,11 @@
     $(profile + 'MetadataURI').value = account.metadataURI || '';
     $(profile + 'MetadataURI').disabled = account.registered && !account.listed;
     $(profile + 'MetadataEntry').hidden = !account.registered;
+    // keep both ends of the DID readable on a phone; the full one is in the tooltip
     did.innerHTML = account.registered
-      ? transactionLink(account.registrationTxHash, account.did)
+      ? transactionLink(account.registrationTxHash, account.did.replace(/(0x[0-9a-f]{4})[0-9a-f]+([0-9a-f]{4})$/i, '$1…$2'))
       : 'Not registered';
+    did.title = account.registered ? account.did : '';
     $(profile + 'ListingStatus').textContent = account.registered
       ? account.listed ? 'Listed' : 'Unlisted'
       : 'Not registered';
@@ -1627,6 +1646,7 @@
     $('refreshChainBtn').addEventListener('click', refreshPublicRegistry);
     state.hideUnlisted = readHideUnlisted();
     $('hideUnlistedToggle').addEventListener('click', () => setHideUnlisted(!state.hideUnlisted));
+    $('modeSwitch').addEventListener('click', switchMode);
 
     reset();
     showView('registry');

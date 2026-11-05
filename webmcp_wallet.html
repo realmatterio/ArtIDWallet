@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=JetBrains+Mono:wght@400;500&display=swap">
-  <link rel="stylesheet" href="resale.css?v=16">
+  <link rel="stylesheet" href="resale.css?v=20">
   <link rel="stylesheet" href="webmcp-wallet.css?v=2">
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.min.js"></script>
@@ -17,7 +17,7 @@
   <script src="addrQrOverlay.js?v=9"></script>
   <script src="artid-config.js?v=4"></script>
   <script src="artid-chain.js?v=4"></script>
-  <script src="webmcp-wallet.js?v=2" defer></script>
+  <script src="webmcp-wallet.js?v=3" defer></script>
 </head>
 <body class="wm">
   <a class="rs-skip" href="#main">Skip to content</a>
@@ -35,6 +35,11 @@
     </div>
 
     <div class="rs-topbar-actions">
+      <button class="rs-switch rs-mode-switch" id="modeSwitch" type="button" role="switch" aria-checked="true" aria-label="Agent mode" data-href="resale.html" title="Switch to the human wallet">
+        <span class="rs-mode-label">Human</span>
+        <span class="rs-switch-track" aria-hidden="true"><span></span></span>
+        <span class="rs-mode-label">Agent</span>
+      </button>
       <button class="rs-btn rs-btn-quiet rs-btn-sm rs-icon-btn wm-agent-btn" id="agentBtn" type="button" aria-haspopup="dialog">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9.5 16.5h5"/></svg>
         <span class="wm-agent-dot" aria-hidden="true"></span>

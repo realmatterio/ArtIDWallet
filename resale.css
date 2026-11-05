@@ -414,6 +414,28 @@ select.rs-input {
 .rs-switch[aria-checked="true"] .rs-switch-track { background: var(--accent); }
 .rs-switch[aria-checked="true"] .rs-switch-track > span { transform: translateX(16px); }
 
+/* Human / Agent: the lit label is the wallet you are in */
+.rs-mode-switch { gap: 6px; font-size: 13px; color: var(--muted); }
+.rs-mode-switch[aria-checked="false"] .rs-mode-label:first-child,
+.rs-mode-switch[aria-checked="true"] .rs-mode-label:last-child { color: var(--ink); }
+
+/* phones and small tablets: the title gets its own row so it is never cut
+   short, and messages sit above the tab bar instead of over the heading */
+@media (max-width: 759px) {
+  .rs-topbar { flex-wrap: wrap; row-gap: 0; padding-top: calc(env(safe-area-inset-top) + 8px); }
+  .rs-brand { flex: 1 1 100%; }
+  .rs-topbar-actions { flex: 1 1 100%; margin-left: 0; }
+  .rs-mode-switch { min-height: 44px; margin-right: auto; padding-left: 0; }
+  .rs-page-head-row { flex-wrap: wrap; align-items: flex-start; }
+  .rs-page-head-row > div { flex: 1 1 100%; }
+  .rs-chain-status {
+    top: auto;
+    bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 10px);
+    animation-name: rs-toast-up;
+  }
+}
+@keyframes rs-toast-up { from { opacity: 0; transform: translateY(10px); } }
+
 .rs-panel {
   padding: 20px;
   background: var(--surface);
@@ -614,6 +636,8 @@ select.rs-input {
 }
 .rs-wallet-card-facts > div { display: grid; gap: 2px; min-width: 0; }
 .rs-wallet-card-facts > div:first-child { grid-column: 1 / -1; }
+/* the collector ID gets the full width too, so it is not cut short */
+.rs-wallet-card-facts > div:has(> dd[id$="Did"]) { grid-column: 1 / -1; }
 .rs-wallet-card-facts dt { font-size: 12px; color: rgba(255, 255, 255, 0.78); }
 .rs-wallet-card-facts dd {
   min-width: 0;
@@ -734,7 +758,7 @@ button.rs-piece-select:disabled { cursor: not-allowed; }
   background: var(--surface-sunk);
   transition: box-shadow 0.2s ease;
 }
-.rs-thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s var(--ease), filter 0.3s ease; }
+.rs-thumb img { width: 100%; height: 100%; object-fit: cover; color: transparent; transition: transform 0.5s var(--ease), filter 0.3s ease; }
 button.rs-piece-select:hover:not(:disabled) .rs-thumb img { transform: scale(1.035); }
 .rs-piece.is-active .rs-thumb { box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--region, var(--ink)); }
 
@@ -1007,7 +1031,7 @@ button.rs-piece-select:hover:not(:disabled) .rs-thumb img { transform: scale(1.0
   overflow: hidden;
 }
 .rs-art-card-media { position: relative; aspect-ratio: 4 / 3; background: var(--surface-sunk); overflow: hidden; }
-.rs-art-card-media img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.6s var(--ease); }
+.rs-art-card-media img { width: 100%; height: 100%; object-fit: cover; color: transparent; transition: transform 0.6s var(--ease); }
 .rs-art-card:hover .rs-art-card-media img { transform: scale(1.03); }
 .rs-art-card.is-unlisted .rs-art-card-media img { filter: grayscale(1); opacity: 0.6; }
 .rs-art-card-body { display: flex; flex-direction: column; gap: 4px; padding: 16px 16px 4px; }
