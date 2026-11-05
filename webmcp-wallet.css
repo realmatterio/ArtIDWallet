@@ -1,0 +1,238 @@
+/* ==========================================================================
+   ArtID WebMCP Wallet
+
+   Builds on resale.css. Graphics are kept simple: flat colour, letter
+   avatars, one accent per person - blue for Alice (China GBA), orange for
+   Bob (Hong Kong). A numbered step bar replaces the tab bar, since the
+   wallet is a four-step flow rather than four places.
+
+   Mobile first; the step bar joins the header row from 760px.
+   ========================================================================== */
+
+.wm { --wm-header: 112px; padding-bottom: env(safe-area-inset-bottom); }
+
+/* flat cards, no gradients or entrance flourishes */
+.wm .rs-wallet-card { background: var(--card-from); box-shadow: none; animation: none; }
+.wm .rs-account.rs-region-gba { --card-from: #2b5ea7; }
+.wm .rs-account.rs-region-hk { --card-from: #b8520c; }
+.wm .rs-view { animation: none; }
+.wm .rs-cta-bar { bottom: calc(env(safe-area-inset-bottom) + 10px); }
+.wm .rs-chain-status { top: calc(var(--wm-header) + env(safe-area-inset-top) + 8px); }
+
+/* --- header and step bar ---------------------------------------------- */
+
+.wm-topbar { flex-wrap: wrap; row-gap: 0; padding-top: calc(env(safe-area-inset-top) + 6px); }
+/* headings take focus on each step change for screen readers; no ring needed */
+.wm h1[tabindex="-1"]:focus { outline: none; box-shadow: none; }
+.wm-topbar .rs-brand { cursor: default; }
+
+.wm-steps { order: 3; flex-basis: 100%; padding: 4px 0 10px; }
+.wm-steps ol {
+  list-style: none;
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  position: relative;
+}
+/* the line the numbered dots sit on */
+.wm-steps ol::before {
+  content: ""; position: absolute; top: 14px; left: 12.5%; right: 12.5%;
+  height: 2px; background: var(--line);
+}
+.wm-steps button {
+  position: relative;
+  width: 100%;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  border: 0; background: none; padding: 0;
+  color: var(--muted);
+  font-size: 11.5px; font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.wm-steps button:disabled { cursor: default; opacity: 0.55; }
+.wm-steps button.is-done:disabled { opacity: 1; }
+.wm-step-num {
+  width: 28px; height: 28px;
+  display: grid; place-items: center;
+  border: 2px solid var(--line-strong); border-radius: 50%;
+  background: var(--surface);
+  font-size: 13px;
+}
+.wm-steps button.is-done .wm-step-num { border-color: var(--success); background: var(--success); color: #fff; }
+.wm-steps button[aria-current="step"] { color: var(--ink); }
+.wm-steps button[aria-current="step"] .wm-step-num { border-color: var(--accent); background: var(--accent); color: #24170d; }
+.wm-steps button:focus-visible { outline: none; }
+.wm-steps button:focus-visible .wm-step-num { box-shadow: var(--focus); }
+
+.wm-agent-btn { position: relative; }
+.wm-agent-dot {
+  position: absolute; top: 8px; right: 8px;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 0 2px var(--surface);
+}
+.wm-agent-working .wm-agent-dot { background: var(--accent); animation: wm-pulse 1s ease-in-out infinite; }
+@keyframes wm-pulse { 50% { transform: scale(1.5); opacity: 0.6; } }
+
+/* --- shared card ------------------------------------------------------- */
+
+.wm-card {
+  display: flex; flex-direction: column; gap: 18px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow-1);
+}
+
+/* --- 1. log in ---------------------------------------------------------- */
+
+.wm-login { max-width: 460px; width: 100%; }
+.wm-choices { border: 0; display: grid; gap: 10px; }
+.wm-choices legend { margin-bottom: 8px; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+
+.wm-choice {
+  position: relative;
+  display: flex; align-items: center; gap: 14px;
+  min-height: 72px; padding: 12px 16px;
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.wm-choice input { position: absolute; opacity: 0; pointer-events: none; }
+.wm-choice:has(input:checked) { border-color: var(--region); background: var(--region-soft); }
+.wm-choice:has(input:focus-visible) { box-shadow: var(--focus); }
+
+.wm-avatar {
+  flex: none; width: 44px; height: 44px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: var(--region); color: #fff;
+  font-family: var(--font-display); font-size: 21px;
+}
+.wm-choice-text { display: flex; flex-direction: column; min-width: 0; }
+.wm-choice-text strong { font-size: 17px; }
+.wm-choice-text span { font-size: 13px; color: var(--region-ink); font-weight: 600; }
+.wm-choice-check {
+  margin-left: auto; flex: none;
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid var(--line-strong);
+}
+.wm-choice:has(input:checked) .wm-choice-check {
+  border-color: var(--region);
+  background: radial-gradient(circle, var(--region) 0 5px, transparent 6px);
+}
+
+.wm-sync { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+
+/* --- 2. role ------------------------------------------------------------ */
+
+.wm-roles { display: grid; gap: 12px; max-width: 760px; }
+.wm-role {
+  display: flex; align-items: center; gap: 16px;
+  min-height: 96px; padding: 18px;
+  border: 2px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: var(--shadow-1);
+  transition: border-color 0.15s ease, transform 0.12s ease;
+}
+.wm-role:hover { border-color: var(--accent); }
+.wm-role:active { transform: scale(0.99); }
+.wm-role:focus-visible { outline: none; box-shadow: var(--focus); }
+.wm-role[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.wm-role-icon {
+  flex: none; width: 52px; height: 52px;
+  display: grid; place-items: center;
+  border-radius: 14px;
+  background: var(--accent-soft); color: var(--accent-ink);
+}
+.wm-role-icon svg { width: 28px; height: 28px; }
+.wm-role-text { display: flex; flex-direction: column; gap: 2px; }
+.wm-role-text strong { font-size: 18px; }
+.wm-role-text span { font-size: 14px; color: var(--ink-2); }
+
+/* --- 3. wallet: the way on to the registry ------------------------------ */
+
+.wm-next {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  width: 100%; padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: var(--shadow-1);
+}
+.wm-next > span { display: flex; flex-direction: column; gap: 2px; }
+.wm-next strong { font-size: 17px; }
+.wm-next > span > span:last-child { font-size: 14px; color: var(--muted); }
+.wm-next svg { flex: none; width: 24px; height: 24px; color: var(--accent-ink); }
+.wm-next:hover { border-color: var(--accent); }
+.wm-next:focus-visible { outline: none; box-shadow: var(--focus); }
+
+/* --- 4. registry -------------------------------------------------------- */
+
+.rs-page-head-row > .wm-head-actions { flex-direction: row; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* the region name sits in a span of its own, which the chip would otherwise draw as its dot */
+.wm .rs-region-chip > #walletRegion { width: auto; height: auto; border-radius: 0; background: none; }
+.wm .rs-page-head-row { flex-wrap: wrap; }
+
+/* --- agent dialogs ------------------------------------------------------ */
+
+.wm-dialog { display: none; flex-direction: column; gap: 12px; }
+.wm-dialog[open] { display: flex; }
+.wm-dialog h2 { font-family: var(--font-display); font-size: 24px; font-weight: 500; line-height: 1.2; padding-right: 32px; }
+.wm-dialog-actions { display: flex; gap: 10px; margin-top: 4px; }
+.wm-dialog-actions .rs-btn { flex: 1; }
+.wm-dialog .rs-kv:empty { display: none; }
+
+.wm-tool-list, .wm-activity { list-style: none; display: grid; gap: 10px; margin-top: 10px; }
+.wm-tool-list li { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; align-items: center; font-size: 13px; }
+.wm-tool-list li > span:last-child { grid-column: 1 / -1; color: var(--muted); }
+.wm-tool-list code, .wm-activity code { font-family: var(--font-mono); font-size: 12.5px; font-weight: 500; }
+.wm-tool-list .rs-pill { justify-self: start; }
+.wm-activity li { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; font-size: 13px; }
+.wm-activity li > span:last-child { grid-column: 1 / -1; color: var(--muted); overflow-wrap: anywhere; }
+.wm-activity li.is-error > span:last-child { color: var(--danger); }
+.wm-activity-time { font-variant-numeric: tabular-nums; color: var(--muted); }
+.wm-activity .wm-activity-empty { display: block; color: var(--muted); }
+
+/* --- wider screens ------------------------------------------------------ */
+
+@media (min-width: 600px) {
+  .wm-roles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .wm-role { flex-direction: column; align-items: flex-start; min-height: 180px; padding: 24px; }
+}
+
+@media (min-width: 760px) {
+  .wm { --wm-header: 68px; }
+  .wm-topbar { flex-wrap: nowrap; }
+  .wm-steps { order: 1; flex-basis: auto; margin: 0 auto; padding: 0; }
+  .wm-topbar .rs-topbar-actions { order: 2; }
+  .wm-agent-dot { top: 9px; left: 24px; right: auto; }
+  .wm-steps ol { display: flex; gap: 4px; }
+  .wm-steps ol::before { display: none; }
+  .wm-steps button {
+    flex-direction: row; gap: 8px;
+    height: 40px; padding: 0 12px 0 6px;
+    border-radius: 999px;
+    font-size: 14px;
+  }
+  .wm-steps button:hover:not(:disabled) { background: var(--surface-sunk); color: var(--ink); }
+  .wm-steps button[aria-current="step"] { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+  .wm-step-num { width: 26px; height: 26px; font-size: 12px; }
+  .wm-topbar .rs-topbar-actions { margin-left: 0; }
+}
+
+@media (min-width: 760px) and (max-width: 939px) {
+  .wm-steps .wm-step-label { display: none; }
+  .wm-steps button[aria-current="step"] .wm-step-label { display: inline; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wm-agent-working .wm-agent-dot { animation: none; }
+}
