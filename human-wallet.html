@@ -4,31 +4,32 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#f5f6f8">
-  <title>Cross Border Art ID Registry and Resale Service</title>
+  <meta name="description" content="Connect artist and collector wallets hosted by ICCHSM for cross-border DID:ART records on qBESU and ASTRON. Payments are simulated.">
+  <title>DID:ART ID Registry (GBA-HK) · Human Wallet</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=JetBrains+Mono:wght@400;500&display=swap">
-  <link rel="stylesheet" href="resale.css?v=20">
+  <link rel="stylesheet" href="human-wallet.css?v=22">
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.5/dist/ethers.umd.min.js"></script>
   <script src="artworks.js?v=9"></script>
   <script src="addrQrOverlay.js?v=9"></script>
-  <script src="artid-config.js?v=4"></script>
-  <script src="artid-chain.js?v=4"></script>
+  <script src="artid-config.js?v=5"></script>
+  <script src="artid-chain.js?v=6"></script>
 </head>
 <body>
   <a class="rs-skip" href="#main">Skip to content</a>
   <header class="rs-topbar">
-    <button class="rs-brand" id="brandHome" type="button" title="Back to home" aria-label="Cross Border Art ID, back to home">
+    <button class="rs-brand" id="brandHome" type="button" title="Back to home" aria-label="DID:ART ID Registry, back to home">
       <span class="rs-brand-mark">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <rect x="3" y="3" width="18" height="18" rx="2.5"/><path d="m3 16 5-5 4 4 3-3 6 6"/><circle cx="9" cy="8.5" r="1.5"/>
         </svg>
       </span>
       <span class="rs-brand-text">
-        <strong>Cross Border Art ID</strong>
-        <span id="brandSub">Registry and Resale Service</span>
+        <strong>DID:ART ID Registry (GBA-HK)</strong>
+        <span id="brandSub">Cross-border transactions · Human &amp; Agent · Artist to Collector</span>
       </span>
     </button>
 
@@ -54,7 +55,7 @@
     </nav>
 
     <div class="rs-topbar-actions">
-      <button class="rs-switch rs-mode-switch" id="modeSwitch" type="button" role="switch" aria-checked="false" aria-label="Agent mode" data-href="webmcp_wallet.html" title="Switch to the AI agent wallet">
+      <button class="rs-switch rs-mode-switch" id="modeSwitch" type="button" role="switch" aria-checked="false" aria-label="Agent mode" data-href="agent-wallet.html" title="Switch to the agent wallet">
         <span class="rs-mode-label">Human</span>
         <span class="rs-switch-track" aria-hidden="true"><span></span></span>
         <span class="rs-mode-label">Agent</span>
@@ -80,8 +81,9 @@
       <div class="rs-portal">
         <header class="rs-page-head">
           <p class="rs-eyebrow">China GBA &harr; Hong Kong</p>
-          <h1>Art across borders. One registry.</h1>
-          <p>For GBA artists and Hong Kong collectors. Payments are simulated; ownership updates after a confirmed transfer.</p>
+          <h1>DID:ART ID Registry (GBA-HK)</h1>
+          <p>Cross-border transactions · Human &amp; Agent · Artist to Collector</p>
+          <p>Connect artist and collector wallets hosted by ICCHSM, with cross-border DID:ART data for KYC and AML and art asset records on ASTRON (records, payment, KYC and AML are simulated on qBESU by this demo).</p>
         </header>
 
         <div class="rs-route">
@@ -105,6 +107,11 @@
                   <button class="rs-btn rs-btn-primary" id="aliceConnectBtn" type="submit">Unlock</button>
                 </div>
               </form>
+              <dl class="rs-kv rs-portal-icchsm" id="alicePortalDetails" hidden>
+                <div><dt>ICCHSM slot</dt><dd><span class="rs-icchsm-status"><span class="rs-portal-status-icon is-unlocked" aria-hidden="true"></span>Unlocked</span></dd></div>
+                <div><dt>Wallet address</dt><dd id="alicePortalAddress"></dd></div>
+                <div><dt>Collector DID</dt><dd id="alicePortalDid"></dd></div>
+              </dl>
               <button class="rs-btn rs-btn-block rs-open-wallet" id="aliceOpenBtn" type="button" disabled>Open artist wallet</button>
             </div>
           </article>
@@ -152,6 +159,11 @@
                   <button class="rs-btn rs-btn-primary" id="bobConnectBtn" type="submit">Unlock</button>
                 </div>
               </form>
+              <dl class="rs-kv rs-portal-icchsm" id="bobPortalDetails" hidden>
+                <div><dt>ICCHSM slot</dt><dd><span class="rs-icchsm-status"><span class="rs-portal-status-icon is-unlocked" aria-hidden="true"></span>Unlocked</span></dd></div>
+                <div><dt>Wallet address</dt><dd id="bobPortalAddress"></dd></div>
+                <div><dt>Collector DID</dt><dd id="bobPortalDid"></dd></div>
+              </dl>
               <button class="rs-btn rs-btn-block rs-open-wallet" id="bobOpenBtn" type="button" disabled>Open collector wallet</button>
             </div>
           </article>
@@ -206,6 +218,24 @@
             <button class="rs-btn rs-btn-quiet" id="aliceCollectorListingToggle" type="button" hidden></button>
           </div>
           <details id="aliceMetadataHistory" class="rs-metadata-history rs-disclosure" hidden></details>
+        </details>
+        <details class="rs-profile-form">
+          <summary>Human mandate for agentic work</summary>
+          <p class="rs-hint">The human and agent share the same key. Direct transfers bypass the mandate; price and payment are not enforced. Creating a mandate does not approve any artwork.</p>
+          <div class="rs-field"><label for="aliceMandateArtwork">Artwork contract addresses (comma-separated)</label><input class="rs-input" id="aliceMandateArtwork" placeholder="0x..."></div>
+          <div class="rs-field"><label for="aliceMandateRecipient">Permitted recipient</label><input class="rs-input" id="aliceMandateRecipient" placeholder="0x..."></div>
+          <div class="rs-field"><label for="aliceMandateExpiry">Expiry (local time)</label><input class="rs-input" id="aliceMandateExpiry" type="datetime-local"></div>
+          <div class="rs-field"><label for="aliceMandateLimit">Maximum transfers</label><input class="rs-input" id="aliceMandateLimit" type="number" min="1" step="1" value="1"></div>
+          <button class="rs-btn" id="aliceMandateCreate" type="button">Authorize Agentic Work</button>
+          <div class="rs-field"><label for="aliceMandateId">Mandate ID</label><input class="rs-input" id="aliceMandateId" inputmode="numeric"></div>
+          <div class="rs-field"><label for="aliceMandateToken">Artwork for inspection / approval</label><input class="rs-input" id="aliceMandateToken" placeholder="0x..."></div>
+          <div class="rs-profile-actions">
+            <button class="rs-btn" id="aliceMandateRead" type="button">Inspect mandate</button>
+            <button class="rs-btn" id="aliceMandateRevoke" type="button">Revoke mandate</button>
+            <button class="rs-btn" id="aliceMandateApprove" type="button">Approve artwork</button>
+            <button class="rs-btn" id="aliceMandateUnapprove" type="button">Revoke artwork approval</button>
+          </div>
+          <p class="rs-hint" id="aliceMandateStatus" role="status"></p>
         </details>
       </div>
 
@@ -317,6 +347,24 @@
             <button class="rs-btn rs-btn-quiet" id="bobCollectorListingToggle" type="button" hidden></button>
           </div>
           <details id="bobMetadataHistory" class="rs-metadata-history rs-disclosure" hidden></details>
+        </details>
+        <details class="rs-profile-form">
+          <summary>Human mandate for agentic work</summary>
+          <p class="rs-hint">The human and agent share the same key. Direct transfers bypass the mandate; price and payment are not enforced. Creating a mandate does not approve any artwork.</p>
+          <div class="rs-field"><label for="bobMandateArtwork">Artwork contract addresses (comma-separated)</label><input class="rs-input" id="bobMandateArtwork" placeholder="0x..."></div>
+          <div class="rs-field"><label for="bobMandateRecipient">Permitted recipient</label><input class="rs-input" id="bobMandateRecipient" placeholder="0x..."></div>
+          <div class="rs-field"><label for="bobMandateExpiry">Expiry (local time)</label><input class="rs-input" id="bobMandateExpiry" type="datetime-local"></div>
+          <div class="rs-field"><label for="bobMandateLimit">Maximum transfers</label><input class="rs-input" id="bobMandateLimit" type="number" min="1" step="1" value="1"></div>
+          <button class="rs-btn" id="bobMandateCreate" type="button">Authorize Agentic Work</button>
+          <div class="rs-field"><label for="bobMandateId">Mandate ID</label><input class="rs-input" id="bobMandateId" inputmode="numeric"></div>
+          <div class="rs-field"><label for="bobMandateToken">Artwork for inspection / approval</label><input class="rs-input" id="bobMandateToken" placeholder="0x..."></div>
+          <div class="rs-profile-actions">
+            <button class="rs-btn" id="bobMandateRead" type="button">Inspect mandate</button>
+            <button class="rs-btn" id="bobMandateRevoke" type="button">Revoke mandate</button>
+            <button class="rs-btn" id="bobMandateApprove" type="button">Approve artwork</button>
+            <button class="rs-btn" id="bobMandateUnapprove" type="button">Revoke artwork approval</button>
+          </div>
+          <p class="rs-hint" id="bobMandateStatus" role="status"></p>
         </details>
       </div>
 
@@ -438,10 +486,10 @@
   /* ---------------- views ---------------- */
 
   const VIEW_SUB = {
-    portal:   'Registry and Resale Service',
-    alice:    'Artist Alice Wallet',
-    bob:      'Collector Bob Wallet',
-    registry: 'Registered Artworks and Collectors'
+    portal:   'Cross-border transactions · Human & Agent · Artist to Collector',
+    alice:    'Human Wallet · Artist Alice',
+    bob:      'Human Wallet · Collector Bob',
+    registry: 'Settlement Registry · Artworks and Collectors'
   };
 
   function showView(name) {
@@ -489,6 +537,9 @@
         : 'Wallet unlocked', unlocked);
     $(profile + 'OpenBtn').disabled = !unlocked;
     $(profile + 'ConnectBtn').textContent = unlocked ? 'Reconnect' : 'Unlock';
+    $(profile + 'PortalDetails').hidden = !unlocked || !account;
+    $(profile + 'PortalAddress').textContent = unlocked && account ? account.address : '';
+    $(profile + 'PortalDid').textContent = unlocked && account ? account.did || 'Not registered' : '';
     updateNav();
   }
 
@@ -1465,6 +1516,105 @@
     }
   }
 
+  let mandateBusy = false;
+
+  function mandateSummary(record) {
+    const status = record.revoked ? 'revoked' : record.remainingTransfers === '0' ? 'exhausted'
+      : record.expiresAt * 1000 <= Date.now() ? 'expired' : 'active';
+    return 'Mandate #' + record.id + ': ' + status + '. Principal: ' + record.principal +
+      '; recipient: ' + record.recipient + '; expires: ' + new Date(record.expiresAt * 1000).toLocaleString() +
+      '; transfers remaining: ' + record.remainingTransfers +
+      (record.artwork ? '; artwork permitted: ' + (record.permitted ? 'yes' : 'no') +
+        '; owner: ' + record.owner + '; contract approved: ' + (record.approved ? 'yes' : 'no') : '');
+  }
+
+  async function manageMandate(profile, action) {
+    const status = $(profile + 'MandateStatus');
+    let txHash = null;
+    let confirmed = false;
+    if (mandateBusy) {
+      status.textContent = 'Another mandate transaction is in progress.';
+      return;
+    }
+    mandateBusy = true;
+    try {
+      const account = state.accounts[profile];
+      if (!isConnected(profile) || !account) throw new Error('Unlock this wallet first.');
+      const id = $(profile + 'MandateId').value.trim();
+      const token = $(profile + 'MandateToken').value.trim();
+      if (action === 'read') {
+        const record = await ArtIDChain.getMandate(id, token);
+        status.textContent = mandateSummary(record);
+        return;
+      }
+      let send;
+      if (action === 'create') {
+        const recipient = $(profile + 'MandateRecipient').value.trim();
+        const artworks = $(profile + 'MandateArtwork').value.split(',').map(value => value.trim()).filter(Boolean);
+        const expiry = Math.floor(new Date($(profile + 'MandateExpiry').value).getTime() / 1000);
+        const limit = Number($(profile + 'MandateLimit').value);
+        if (!ethers.isAddress(recipient) || recipient.toLowerCase() === ethers.ZeroAddress.toLowerCase() ||
+          recipient.toLowerCase() === account.address.toLowerCase()) throw new Error('Enter a valid recipient different from this wallet.');
+        if (!Number.isSafeInteger(expiry) || expiry <= Math.floor(Date.now() / 1000)) throw new Error('Expiry must be in the future.');
+        if (!Number.isSafeInteger(limit) || limit < 1) throw new Error('Transfer limit must be a positive whole number.');
+        if (!artworks.length || artworks.length > 100 || artworks.some(address => !ethers.isAddress(address)) ||
+          new Set(artworks.map(address => address.toLowerCase())).size !== artworks.length) {
+          throw new Error('Enter 1 to 100 unique valid artwork addresses.');
+        }
+        if (artworks.some(address => !state.artworks.some(art => art.address && art.owner && art.address.toLowerCase() === address.toLowerCase() && art.owner.toLowerCase() === account.address.toLowerCase()))) {
+          throw new Error('Each artwork must be in the loaded registry and owned by this wallet.');
+        }
+        if (!window.confirm('Create mandate for recipient ' + recipient + '?\nArtworks: ' + artworks.join(', ') +
+          '\nExpiry: ' + new Date(expiry * 1000).toLocaleString() + '\nMaximum transfers: ' + limit +
+          '\nThis does not approve artwork or restrict direct transfers. Payment is not enforced.')) return;
+        send = () => ArtIDChain.createMandate(profile, recipient, artworks, expiry, limit);
+      } else {
+        if (action !== 'revoke' && !token) throw new Error('Enter an artwork address.');
+        const record = await ArtIDChain.getMandate(id, action === 'revoke' ? '' : token);
+        if (record.principal.toLowerCase() !== account.address.toLowerCase()) throw new Error('This mandate belongs to a different wallet.');
+        if (action === 'revoke') {
+          if (!window.confirm('Revoke mandate #' + id + '? Artwork approvals remain and must be revoked separately.')) return;
+          send = () => ArtIDChain.revokeMandate(profile, id);
+        } else {
+          if (!token || record.owner.toLowerCase() !== account.address.toLowerCase()) throw new Error('This wallet must own the artwork.');
+          if (action === 'approve') {
+            if (!record.permitted || record.revoked || record.remainingTransfers === '0' || record.expiresAt * 1000 <= Date.now()) {
+              throw new Error('Artwork is not permitted by an active mandate.');
+            }
+            if (!window.confirm('Approve the mandate contract for token #1 of ' + token +
+              '? This replaces any existing token-specific approval. Approval persists until transfer or separate revocation, including after this mandate is revoked.')) return;
+          } else {
+            if (record.tokenApproval.toLowerCase() !== ARTID_CONFIG.mandateContractAddress.toLowerCase()) {
+              throw new Error('The mandate contract is not the token-specific approved address. Operator approvals must be revoked separately.');
+            }
+            if (!window.confirm('Revoke the token-specific approval for ' + token + '? Operator-wide approvals are not affected.')) return;
+          }
+          send = () => ArtIDChain.setMandateApproval(profile, token, action === 'approve');
+        }
+      }
+      status.textContent = 'Submitting transaction to qBESU.';
+      txHash = (await send()).txHash;
+      status.textContent = 'Submitted ' + txHash + '; waiting for confirmation.';
+      const receipt = await ArtIDChain.waitForReceipt(txHash);
+      if (receipt.status !== 'confirmed') throw new Error('Transaction failed on qBESU.');
+      confirmed = true;
+      status.textContent = 'Transaction confirmed: ' + txHash;
+      if (action === 'create') {
+        const created = await ArtIDChain.createdMandateId(txHash);
+        $(profile + 'MandateId').value = created;
+        status.textContent = 'Mandate #' + created + ' created. Approve each artwork separately. Transaction: ' + txHash;
+      } else if (action === 'revoke') {
+        status.textContent = 'Mandate revoked. Revoke token approvals separately. Transaction: ' + txHash;
+      }
+    } catch (error) {
+      status.textContent = (confirmed ? 'Transaction confirmed, but a follow-up failed: ' : '') +
+        error.message + (txHash ? ' Transaction: ' + txHash : '');
+      showChainStatus(status.textContent, 'error', txHash);
+    } finally {
+      mandateBusy = false;
+    }
+  }
+
   async function updateCollector(profile) {
     state.collectorRegistering = profile;
     renderCollector(profile);
@@ -1639,6 +1789,10 @@
     $('rsReset').addEventListener('click', reset);
     $('aliceRegister').addEventListener('click', () => registerCollector('alice'));
     $('bobRegister').addEventListener('click', () => registerCollector('bob'));
+    profiles.forEach(profile => {
+      [['Create', 'create'], ['Read', 'read'], ['Revoke', 'revoke'], ['Approve', 'approve'], ['Unapprove', 'unapprove']]
+        .forEach(([suffix, action]) => $(profile + 'Mandate' + suffix).addEventListener('click', () => manageMandate(profile, action)));
+    });
     $('aliceSaveMetadata').addEventListener('click', () => updateCollector('alice'));
     $('bobSaveMetadata').addEventListener('click', () => updateCollector('bob'));
     $('createArtworkBtn').addEventListener('click', createArtwork);

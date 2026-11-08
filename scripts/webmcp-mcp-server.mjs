@@ -5,7 +5,7 @@
    Lets an MCP client (Claude Code, Claude Desktop, ...) operate the WebMCP
    wallet while browsers ship navigator.modelContext only behind flags.
 
-   It serves this folder on http://127.0.0.1:8765, opens webmcp_wallet.html
+   It serves this folder on http://127.0.0.1:8765, opens agent-wallet.html
    in a Chrome window you can watch, and forwards MCP tool calls over stdio to
    the page's window.webmcpWallet bridge. Requests that would sign a qBESU
    transaction still wait for you to press Approve in that window.
@@ -31,7 +31,7 @@ const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const WALLET_PORT = Number(process.env.WALLET_PORT || 8765);
 const CDP_PORT = Number(process.env.CDP_PORT || 9333);
 const HEADLESS = process.env.HEADLESS === '1';
-const PAGE_URL = `http://127.0.0.1:${WALLET_PORT}/webmcp_wallet.html`;
+const PAGE_URL = `http://127.0.0.1:${WALLET_PORT}/agent-wallet.html`;
 
 // stdout carries the MCP protocol, so anything for humans goes to stderr
 const log = (...args) => console.error('[artid-wallet]', ...args);
@@ -49,7 +49,7 @@ function serve() {
   return new Promise(done => {
     const server = createServer((req, res) => {
       const path = decodeURIComponent(new URL(req.url, 'http://x').pathname);
-      const file = normalize(join(ROOT, path === '/' ? '/webmcp_wallet.html' : path));
+      const file = normalize(join(ROOT, path === '/' ? '/agent-wallet.html' : path));
       if (!file.startsWith(ROOT + sep) || !TYPES[extname(file).toLowerCase()]) {
         res.writeHead(404).end();
         return;
@@ -85,7 +85,7 @@ let chrome;
 
 async function walletTarget() {
   const targets = await (await fetch(`http://127.0.0.1:${CDP_PORT}/json`)).json();
-  return targets.find(t => t.type === 'page' && t.url.includes('webmcp_wallet')) || null;
+  return targets.find(t => t.type === 'page' && t.url.includes('agent-wallet.html')) || null;
 }
 
 /* Reuse a wallet window that is already open on the debugging port (another

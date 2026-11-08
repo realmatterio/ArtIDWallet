@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Cross Border Art ID Registry and Resale Service
+   DID:ART ID Registry - shared wallet styles
 
    A gallery first, a ledger second. Neutral surfaces let the artwork carry
    the colour, with Octopus-inspired orange for wallet actions. Blue continues
@@ -416,8 +416,11 @@ select.rs-input {
 
 /* Human / Agent: the lit label is the wallet you are in */
 .rs-mode-switch { gap: 6px; font-size: 13px; color: var(--muted); }
+.rs-mode-switch[aria-checked="false"] .rs-switch-track { background: #d76700; }
+.rs-mode-switch[aria-checked="true"] .rs-switch-track { background: #205dad; }
 .rs-mode-switch[aria-checked="false"] .rs-mode-label:first-child,
 .rs-mode-switch[aria-checked="true"] .rs-mode-label:last-child { color: var(--ink); }
+.rs-portal-icchsm { overflow-wrap: anywhere; }
 
 /* phones and small tablets: the title gets its own row so it is never cut
    short, and messages sit above the tab bar instead of over the heading */
@@ -525,6 +528,7 @@ select.rs-input {
   background: var(--line-strong);
 }
 .rs-portal-status-icon.is-unlocked { background: var(--success); box-shadow: 0 0 0 3px var(--success-soft); }
+.rs-icchsm-status { display: inline-flex; align-items: center; gap: 8px; color: var(--success); }
 .rs-portal-status-icon.is-error { background: var(--danger); box-shadow: 0 0 0 3px var(--danger-soft); }
 .is-unlocked .rs-portal-description { color: var(--success); }
 .rs-sync .rs-portal-status-icon.is-unlocked { animation: rs-breathe 2.4s ease-in-out infinite; }

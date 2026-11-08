@@ -43,6 +43,19 @@ Great Wave `contentHash` was empty in this live read. Query the factory's
 `artworkAt(index)` for the current complete catalog. The chain is authoritative
 if these notes become stale.
 
+## Transfer mandate contract
+
+Deployed and verified on 2026-11-08 (qBESU chain ID 1337):
+
+| Contract | Address | Block | Deployment transaction |
+|---|---|---:|---|
+| `ArtIDTransferMandates` | `0x124323D8e8f2C1Cf0F78fBc7244893d424e4475A` | `634986` | [0x713e7a62…064336b7](https://quantumbesu.web.app/quantumbesu.html?transaction=0x713e7a62faf5d4b8f6f180700708b768a8f6a71bcbd8c64f553dd3af064336b7) |
+
+The deployer was `0xecc51175adaf8852b0494c53fc8c29cbfcaf7d0d`, and the
+confirmed runtime bytecode matched the local compiled artifact. The wallet UI
+is configured to use this contract. Its shared-key and enforcement limitations
+are described in [README.md](./README.md#transfer-mandate-contract).
+
 ## Known demo EOAs
 
 These are the demo addresses documented for the ICCHSM wallet slots. Verify

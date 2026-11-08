@@ -1,5 +1,5 @@
 /* ==========================================================================
-   webmcp-wallet.js
+   agent-wallet.js
 
    The resale module reordered into a four-step wallet - log in, choose a role,
    use the wallet, browse the registry - that a person or an AI agent can
@@ -26,7 +26,7 @@
     collector: { label: 'Collector', wallet: 'Collector wallet' }
   };
   const PAGES = ['login', 'role', 'wallet', 'registry'];
-  const PAGE_TITLE = { login: 'Log in', role: 'Choose a role', wallet: 'Wallet', registry: 'ArtID Registry' };
+  const PAGE_TITLE = { login: 'Human Principal', role: 'Bound Agent', wallet: 'Wallet Mandate', registry: 'Settlement Registry' };
 
   const state = {
     page: 'login',
@@ -211,7 +211,7 @@
     }
     state.page = page;
     PAGES.forEach(name => { $(name + 'Page').hidden = name !== page; });
-    document.title = PAGE_TITLE[page] + ' · ArtID WebMCP Wallet';
+    document.title = PAGE_TITLE[page] + ' · DID:ART ID Registry (GBA-HK)';
     window.scrollTo({ top: 0 });
     renderChrome();
     renderPage();
@@ -235,18 +235,30 @@
     });
     $('logoutBtn').hidden = !state.user;
     $('brandSub').textContent = state.user
-      ? PEOPLE[state.user].name + (state.role ? ' · ' + ROLES[state.role].label : '') + ' · WebMCP'
-      : 'WebMCP · AI agent ready';
+      ? 'Agentic ' + PEOPLE[state.user].name + (state.role ? ' · ' + ROLES[state.role].label : '') + ' · Agent Wallet'
+      : 'Cross-border transactions · Human & Agent · Artist to Collector';
   }
 
   function renderPage() {
+    if (state.page === 'login') {
+      PROFILES.forEach(profile => {
+        const account = state.collectors.find(item => sameAddress(item.address, state.known[profile]));
+        $(profile + 'PrincipalDid').textContent = account && account.registered
+          ? account.did
+          : state.known[profile] ? 'Collector DID not registered' : 'DID available after unlock';
+      });
+    }
     if (state.page === 'role') renderRolePage();
     if (state.page === 'wallet') renderWallet();
     if (state.page === 'registry') { renderRegistry(); renderLedger(); }
   }
 
   function renderRolePage() {
-    $('roleHeading').textContent = 'Hi ' + PEOPLE[state.user].name + ', choose a role';
+    $('roleHeading').textContent = 'Agentic ' + PEOPLE[state.user].name + ' · choose a role';
+    $('roleWalletAddress').textContent = state.account ? state.account.address : 'Unavailable';
+    $('roleWalletDid').textContent = state.account
+      ? state.account.did || 'Not registered'
+      : 'Unavailable';
     document.querySelectorAll('[data-role]').forEach(button => {
       button.setAttribute('aria-pressed', String(button.dataset.role === state.role));
     });
@@ -290,6 +302,10 @@
     state.account = null;
     state.selected = null;
     resetPurchase();
+    ['agentMandateId', 'agentMandateArtwork', 'agentMandateStatus'].forEach(id => {
+      if (id === 'agentMandateStatus') { $(id).textContent = ''; return; }
+      $(id).value = '';
+    });
     if (!options || !options.quiet) {
       go('login');
       if (name) showChainStatus(name + ' logged out. The wallet PIN has been cleared from this session.', 'success');
@@ -375,20 +391,96 @@
     state.busy = label;
     renderPage();
     let txHash = null;
+    let confirmed = false;
     try {
       txHash = (await send()).txHash;
       showChainStatus(label + ' submitted. Waiting for a qBESU block, which may take about a minute.', 'pending', txHash);
       const receipt = await ArtIDChain.waitForReceipt(txHash);
       if (receipt.status !== 'confirmed') throw new Error(label + ' failed on qBESU.');
+      confirmed = true;
       await refreshChainState();
       showChainStatus(label + ' confirmed on qBESU.', 'success', txHash);
       return { txHash: txHash, blockNumber: receipt.blockNumber };
     } catch (error) {
+      if (confirmed) error = new Error(label + ' confirmed, but the registry refresh failed: ' + error.message);
       showChainStatus(error.message, 'error', txHash);
       throw error;
     } finally {
       state.busy = null;
       renderPage();
+    }
+  }
+
+  async function inspectMandate(id, artwork) {
+    if (!state.user || !state.account) throw new Error('Unlock the principal wallet first.');
+    if (!artwork) throw new Error('Enter an artwork contract address.');
+    return ArtIDChain.getMandate(id, artwork);
+  }
+
+  async function mandateTransferDetails(id, artwork) {
+    const profile = state.user;
+    const account = state.account;
+    const record = await inspectMandate(id, artwork);
+    if (!account || profile !== state.user || account !== state.account) throw new Error('Wallet changed; inspect the mandate again.');
+    if (!sameAddress(record.principal, account.address)) throw new Error('This mandate belongs to a different wallet.');
+    if (record.revoked || record.expiresAt * 1000 <= Date.now() || record.remainingTransfers === '0') throw new Error('This mandate is revoked, expired, or exhausted.');
+    if (!record.permitted || !sameAddress(record.owner, record.principal)) throw new Error('Artwork is not permitted or no longer owned by the principal.');
+    if (!record.approved) throw new Error('The principal must approve this artwork for the mandate contract first.');
+    if (!state.artworks.some(item => sameAddress(item.address, artwork))) throw new Error('Artwork is not in the loaded registry.');
+    return record;
+  }
+
+  function mandateConfirmation(record) {
+    return {
+      title: 'Execute mandated artwork transfer?',
+      detail: 'The principal wallet will sign. Payment and price are not enforced. Direct transfers remain possible outside this mandate.',
+      facts: {
+        'Mandate ID': record.id,
+        Principal: record.principal,
+        Artwork: record.artwork,
+        Recipient: record.recipient,
+        Expiry: new Date(record.expiresAt * 1000).toLocaleString(),
+        'Transfers remaining': record.remainingTransfers,
+      },
+    };
+  }
+
+  async function executeMandatedTransfer(id, artwork, approvedRecord, profile) {
+    if (profile !== state.user) throw new Error('Wallet changed; inspect the mandate again.');
+    const current = await mandateTransferDetails(id, artwork);
+    if (profile !== state.user) throw new Error('Wallet changed; inspect the mandate again.');
+    if (current.id !== approvedRecord.id || !sameAddress(current.principal, approvedRecord.principal) ||
+      !sameAddress(current.recipient, approvedRecord.recipient) || !sameAddress(current.artwork, approvedRecord.artwork) ||
+      current.expiresAt !== approvedRecord.expiresAt || current.remainingTransfers !== approvedRecord.remainingTransfers) {
+      throw new Error('Mandate details changed after confirmation; inspect and confirm again.');
+    }
+    return chainWrite('Mandated artwork transfer', () => ArtIDChain.executeMandate(profile, id, artwork));
+  }
+
+  async function handleMandate(action) {
+    const status = $('agentMandateStatus');
+    const id = $('agentMandateId').value.trim();
+    const artwork = $('agentMandateArtwork').value.trim();
+    try {
+      if (action === 'read') {
+        const record = await inspectMandate(id, artwork);
+        status.textContent = 'Mandate #' + record.id + ': principal ' + record.principal + '; recipient ' + record.recipient +
+          '; expires ' + new Date(record.expiresAt * 1000).toLocaleString() + '; remaining ' + record.remainingTransfers +
+          '; revoked ' + (record.revoked ? 'yes' : 'no') + '; artwork permitted ' + (record.permitted ? 'yes' : 'no') +
+          '; owner ' + record.owner + '; approved ' + (record.approved ? 'yes' : 'no') + '.';
+        return;
+      }
+      if (pendingApproval || state.busy) throw new Error('Another approval or transaction is in progress.');
+      const profile = state.user;
+      const record = await mandateTransferDetails(id, artwork);
+      if (pendingApproval || state.busy) throw new Error('Another approval or transaction is in progress.');
+      if (!await askPerson(mandateConfirmation(record))) throw new Error('Transfer declined; nothing was signed.');
+      if (profile !== state.user) throw new Error('Wallet changed; inspect the mandate again.');
+      const result = await executeMandatedTransfer(id, artwork, record, profile);
+      status.textContent = 'Mandated transfer confirmed: ' + result.txHash;
+    } catch (error) {
+      status.textContent = error.message;
+      showChainStatus(error.message, 'error');
     }
   }
 
@@ -1290,7 +1382,30 @@
   const ARTWORK_REF = { type: 'string', description: 'The artwork\'s artworkId exactly as returned by list_my_artworks or search_registry, its idTokenContract address, or its exact title.' };
   const CHAIN_NOTE = ' Signs a qBESU transaction: the wallet owner must approve it on screen, and confirmation can take about a minute.';
 
+  const mandateApproval = Symbol('mandateApproval');
   const TOOLS = [
+    {
+      name: 'inspect_mandate',
+      description: 'Read an on-chain transfer mandate and artwork approval for the current principal.',
+      pages: ['wallet'],
+      readOnly: true,
+      inputSchema: { type: 'object', properties: { mandateId: { type: 'string' }, artwork: { type: 'string' } }, required: ['mandateId', 'artwork'] },
+      run: args => inspectMandate(args.mandateId, args.artwork)
+    },
+    {
+      name: 'execute_mandated_transfer',
+      description: 'Transfer an approved artwork under a mandate. Payment is not enforced; direct transfers can bypass the mandate.' + CHAIN_NOTE,
+      pages: ['wallet'],
+      chain: true,
+      inputSchema: { type: 'object', properties: { mandateId: { type: 'string' }, artwork: { type: 'string' } }, required: ['mandateId', 'artwork'] },
+      confirm: async args => {
+        const profile = state.user;
+        const record = await mandateTransferDetails(args.mandateId, args.artwork);
+        args[mandateApproval] = { record, profile };
+        return mandateConfirmation(record);
+      },
+      run: args => executeMandatedTransfer(args.mandateId, args.artwork, args[mandateApproval].record, args[mandateApproval].profile)
+    },
     {
       name: 'get_wallet_state',
       description: 'Read where the wallet is in its four steps (login, role, wallet, registry), who is logged in, their role, wallet details, artworks, and any payment code or purchase in progress. Call this first if unsure what to do next.',
@@ -1682,6 +1797,7 @@
   let pendingApproval = null;
 
   function askPerson(request) {
+    if (pendingApproval) throw new Error('Another confirmation is already in progress.');
     const dialog = $('agentConfirm');
     $('confirmTitle').textContent = request.title;
     $('confirmDetail').textContent = request.detail || '';
@@ -1746,7 +1862,7 @@
   let running = 0;
 
   async function callTool(name, rawArgs, client) {
-    const args = rawArgs && typeof rawArgs === 'object' ? rawArgs : {};
+    const args = rawArgs && typeof rawArgs === 'object' ? Object.assign({}, rawArgs) : {};
     const tool = availableTools().find(item => item.name === name);
     const entry = { time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }), name: name, note: JSON.stringify(redact(args)), status: 'running' };
     if (!tool) {
@@ -1765,13 +1881,17 @@
     try {
       checkArgs(tool, args);
       if (!tool.readOnly) showChainStatus('AI agent: ' + name.replace(/_/g, ' ') + '.', 'info');
-      const request = tool.confirm && tool.confirm(args);
+      const request = tool.confirm && await tool.confirm(args);
       if (request) {
-        const show = () => askPerson(request);
+        let onScreenApproved = false;
+        const show = async () => {
+          onScreenApproved = await askPerson(request);
+          return onScreenApproved;
+        };
         const approved = client && typeof client.requestUserInteraction === 'function'
           ? await client.requestUserInteraction(show)
           : await show();
-        if (!approved) throw new Error('The person at this device declined "' + request.title + '" on screen. Nothing was signed or changed. Do not retry unless they ask you to.');
+        if (!approved || !onScreenApproved) throw new Error('The person at this device did not approve "' + request.title + '" on screen. Nothing was signed or changed. Do not retry unless they ask you to.');
       }
       const result = await tool.run(args);
       entry.status = 'done';
@@ -1876,6 +1996,8 @@
     $('refreshChainBtn').addEventListener('click', () => refreshRegistry().catch(() => {}));
     $('hideUnlistedToggle').addEventListener('click', () => setHideUnlisted(!state.hideUnlisted));
     $('createArtworkBtn').addEventListener('click', registerArtworkFromForm);
+    $('agentMandateRead').addEventListener('click', () => handleMandate('read'));
+    $('agentMandateExecute').addEventListener('click', () => handleMandate('execute'));
     $('registerProfileBtn').addEventListener('click', () =>
       registerProfile($('displayNameInput').value, $('metadataInput').value).catch(() => {}));
     $('saveProfileBtn').addEventListener('click', () =>

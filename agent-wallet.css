@@ -1,20 +1,37 @@
 /* ==========================================================================
-   ArtID WebMCP Wallet
+   DID:ART Agent Wallet
 
-   Builds on resale.css. Graphics are kept simple: flat colour, letter
-   avatars, one accent per person - blue for Alice (China GBA), orange for
-   Bob (Hong Kong). A numbered step bar replaces the tab bar, since the
+   Builds on human-wallet.css. Graphics are kept simple: flat colour, letter
+   avatars and blue accents for both regions. A numbered step bar replaces the tab bar, since the
    wallet is a four-step flow rather than four places.
 
    Mobile first; the step bar joins the header row from 760px.
    ========================================================================== */
 
-.wm { --wm-header: 112px; padding-bottom: env(safe-area-inset-bottom); }
+.wm {
+  --wm-header: 112px;
+  --accent: #205dad;
+  --accent-ink: #174983;
+  --accent-soft: #e9f1fb;
+  --hk: #4077b6;
+  --hk-ink: #245486;
+  --hk-soft: #eaf2fb;
+  --paper: #f1f5fa;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.wm .rs-brand-mark,
+.wm .rs-btn-primary,
+.wm .rs-portal-wallet.is-unlocked .rs-open-wallet,
+.wm .rs-open-registry { color: #fff; box-shadow: 0 3px 8px rgba(32, 93, 173, 0.2); }
+.wm .rs-btn-primary:hover,
+.wm .rs-portal-wallet.is-unlocked .rs-open-wallet:hover,
+.wm .rs-open-registry:hover { background: #174983; border-color: #174983; }
+.wm .rs-input:focus { box-shadow: 0 0 0 3px rgba(32, 93, 173, 0.16); }
 
 /* flat cards, no gradients or entrance flourishes */
 .wm .rs-wallet-card { background: var(--card-from); box-shadow: none; animation: none; }
 .wm .rs-account.rs-region-gba { --card-from: #2b5ea7; }
-.wm .rs-account.rs-region-hk { --card-from: #b8520c; }
+.wm .rs-account.rs-region-hk { --card-from: #245486; }
 .wm .rs-view { animation: none; }
 .wm .rs-cta-bar { bottom: calc(env(safe-area-inset-bottom) + 10px); }
 .wm .rs-chain-status { top: calc(var(--wm-header) + env(safe-area-inset-top) + 8px); }
@@ -58,7 +75,7 @@
 }
 .wm-steps button.is-done .wm-step-num { border-color: var(--success); background: var(--success); color: #fff; }
 .wm-steps button[aria-current="step"] { color: var(--ink); }
-.wm-steps button[aria-current="step"] .wm-step-num { border-color: var(--accent); background: var(--accent); color: #24170d; }
+.wm-steps button[aria-current="step"] .wm-step-num { border-color: var(--accent); background: var(--accent); color: #fff; }
 .wm-steps button:focus-visible { outline: none; }
 .wm-steps button:focus-visible .wm-step-num { box-shadow: var(--focus); }
 
@@ -112,7 +129,7 @@
 }
 .wm-choice-text { display: flex; flex-direction: column; min-width: 0; }
 .wm-choice-text strong { font-size: 17px; }
-.wm-choice-text span { font-size: 13px; color: var(--region-ink); font-weight: 600; }
+.wm-choice-text span { font-size: 13px; color: var(--region-ink); font-weight: 600; overflow-wrap: anywhere; }
 .wm-choice-check {
   margin-left: auto; flex: none;
   width: 22px; height: 22px; border-radius: 50%;
@@ -128,6 +145,7 @@
 /* --- 2. role ------------------------------------------------------------ */
 
 .wm-roles { display: grid; gap: 12px; max-width: 760px; }
+.wm-account-details { max-width: 760px; margin-bottom: 16px; }
 .wm-role {
   display: flex; align-items: center; gap: 16px;
   min-height: 96px; padding: 18px;

@@ -10,5 +10,6 @@ window.ARTID_CONFIG = Object.freeze({
     bob: 53897302
   }),
   collectorRegistryAddress: "0x8DFA147Aa00a4fe3a5895835eA78FeC7218aCA4a",
-  factoryAddress: "0x8c1171d964159907cbFf502E83B6718d7547771f"
+  factoryAddress: "0x8c1171d964159907cbFf502E83B6718d7547771f",
+  mandateContractAddress: "0x124323D8e8f2C1Cf0F78fBc7244893d424e4475A"
 });

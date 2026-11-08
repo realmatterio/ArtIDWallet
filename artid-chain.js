@@ -4,6 +4,9 @@
   const config = global.ARTID_CONFIG || {};
   const ethers = global.ethers;
   const sessionPins = {};
+  const maxConcurrentLogRequests = 8;
+  const logRequestQueue = [];
+  let activeLogRequests = 0;
   let provider;
 
   const factoryAbi = [
@@ -30,6 +33,9 @@
     'function isListed() view returns (bool)',
     'function setListed(bool)',
     'function ownerOf(uint256) view returns (address)',
+    'function getApproved(uint256) view returns (address)',
+    'function isApprovedForAll(address,address) view returns (bool)',
+    'function approve(address,uint256)',
     'function safeTransferFrom(address,address,uint256)',
     'event Transfer(address indexed from,address indexed to,uint256 indexed tokenId)',
     'event ArtworkListingUpdated(address indexed artworkContract,bool listed,address indexed changedBy)',
@@ -37,6 +43,36 @@
   const factoryEvents = [
     'event ArtworkCreated(address indexed artworkContract,address indexed creator,uint256 indexed tokenId,string artworkId,string did)',
   ];
+  const mandateAbi = [
+    'function mandates(uint256) view returns (address principal,address recipient,uint64 expiresAt,uint256 remainingTransfers,bool revoked)',
+    'function permittedArtwork(uint256,address) view returns (bool)',
+    'function createMandate(address,address[],uint64,uint256) returns (uint256)',
+    'function revokeMandate(uint256)',
+    'function executeTransfer(uint256,address)',
+    'event MandateCreated(uint256 indexed mandateId,address indexed principal,address indexed recipient,uint64 expiresAt,uint256 maxTransfers,address[] artworks)',
+  ];
+
+  function mandateAddress() {
+    return configuredAddress(config.mandateContractAddress, 'mandate contract');
+  }
+
+  function mandateContract() {
+    return new ethers.Contract(mandateAddress(), mandateAbi, getProvider());
+  }
+
+  function mandateId(value) {
+    if (!/^[1-9]\d*$/.test(String(value))) throw new Error('Enter a valid mandate ID.');
+    const id = BigInt(value);
+    if (id >= (1n << 256n)) throw new Error('Mandate ID is too large.');
+    return id;
+  }
+
+  function validArtworkAddress(value) {
+    if (!ethers.isAddress(value) || value.toLowerCase() === ethers.ZeroAddress.toLowerCase()) {
+      throw new Error('Enter a valid artwork contract address.');
+    }
+    return value;
+  }
 
   function configuredAddress(address, name) {
     if (!ethers || !ethers.isAddress(address)) {
@@ -166,15 +202,35 @@
     return block;
   }
 
+  async function getLogsWithLimit(filter) {
+    if (activeLogRequests >= maxConcurrentLogRequests) {
+      await new Promise(resolve => logRequestQueue.push(resolve));
+    } else {
+      activeLogRequests += 1;
+    }
+    try {
+      return await getProvider().getLogs(filter);
+    } finally {
+      const next = logRequestQueue.shift();
+      if (next) next();
+      else activeLogRequests -= 1;
+    }
+  }
+
   async function readLogsInRanges(address, topic, startBlock, latestBlock) {
     const logs = [];
-    for (let fromBlock = startBlock; fromBlock <= latestBlock; fromBlock += 500) {
-      logs.push(...await getProvider().getLogs({
-        address: address,
-        topics: [topic],
-        fromBlock: fromBlock,
-        toBlock: Math.min(fromBlock + 499, latestBlock),
-      }));
+    for (let first = startBlock; first <= latestBlock; first += 500 * maxConcurrentLogRequests) {
+      const requests = [];
+      for (let fromBlock = first; fromBlock <= latestBlock && fromBlock < first + 500 * maxConcurrentLogRequests; fromBlock += 500) {
+        requests.push(getLogsWithLimit({
+          address: address,
+          topics: [topic],
+          fromBlock: fromBlock,
+          toBlock: Math.min(fromBlock + 499, latestBlock),
+        }));
+      }
+      const ranges = await Promise.all(requests);
+      for (const rangeLogs of ranges) logs.push(...rangeLogs);
     }
     return logs;
   }
@@ -355,15 +411,7 @@
     const latestBlock = await getProvider().getBlockNumber();
     for (let index = 0; index < count; index += 1) {
       const address = await factory.artworkAt(index);
-      const logs = [];
-      for (let fromBlock = deploymentBlock; fromBlock <= latestBlock; fromBlock += 500) {
-        logs.push(...await getProvider().getLogs({
-          address: address,
-          topics: [topic],
-          fromBlock: fromBlock,
-          toBlock: Math.min(fromBlock + 499, latestBlock),
-        }));
-      }
+      const logs = await readLogsInRanges(address, topic, deploymentBlock, latestBlock);
       for (const log of logs) {
         const parsed = iface.parseLog(log);
         if (parsed.args.from === ethers.ZeroAddress) continue;
@@ -422,6 +470,76 @@
     collectors: async function () { return { collectors: await listCollectors() }; },
     artworks: async function () { return { artworks: await listArtworks() }; },
     ledger: async function () { return { transfers: await listTransfers() }; },
+    getMandate: async function (id, artwork) {
+      const contract = mandateContract();
+      const number = mandateId(id);
+      const record = await contract.mandates(number);
+      if (record.principal.toLowerCase() === ethers.ZeroAddress.toLowerCase()) throw new Error('Mandate not found.');
+      const result = {
+        id: number.toString(),
+        principal: record.principal,
+        recipient: record.recipient,
+        expiresAt: Number(record.expiresAt),
+        remainingTransfers: record.remainingTransfers.toString(),
+        revoked: record.revoked,
+      };
+      if (artwork) {
+        validArtworkAddress(artwork);
+        result.artwork = artwork;
+        result.permitted = await contract.permittedArtwork(number, artwork);
+        const token = new ethers.Contract(artwork, artworkAbi, getProvider());
+        const owner = await token.ownerOf(1);
+        const [approved, approvedForAll] = await Promise.all([
+          token.getApproved(1),
+          token.isApprovedForAll(owner, mandateAddress()),
+        ]);
+        result.owner = owner;
+        result.tokenApproval = approved;
+        result.approved = approved.toLowerCase() === mandateAddress().toLowerCase() || approvedForAll;
+        result.approvedForAll = approvedForAll;
+      }
+      return result;
+    },
+    createMandate: async function (profile, recipient, artworks, expiresAt, limit) {
+      if (!ethers.isAddress(recipient) || recipient.toLowerCase() === ethers.ZeroAddress.toLowerCase()) throw new Error('Enter a valid recipient address.');
+      if (!Array.isArray(artworks) || artworks.length < 1 || artworks.length > 100) throw new Error('Enter between 1 and 100 artwork addresses.');
+      artworks.forEach(validArtworkAddress);
+      if (new Set(artworks.map(a => a.toLowerCase())).size !== artworks.length) throw new Error('Artwork addresses must be unique.');
+      if (!Number.isSafeInteger(expiresAt) || expiresAt <= Math.floor(Date.now() / 1000)) throw new Error('Expiry must be in the future.');
+      if (!Number.isSafeInteger(limit) || limit < 1) throw new Error('Transfer limit must be a positive whole number.');
+      const data = new ethers.Interface(mandateAbi).encodeFunctionData('createMandate', [recipient, artworks, expiresAt, limit]);
+      const tx = await submit(profile, mandateAddress(), data);
+      return { txHash: tx.hash };
+    },
+    createdMandateId: async function (txHash) {
+      const receipt = await getProvider().getTransactionReceipt(txHash);
+      if (!receipt || receipt.status !== 1) throw new Error('Confirmed mandate receipt not found.');
+      const iface = new ethers.Interface(mandateAbi);
+      for (const log of receipt.logs) {
+        if (log.address.toLowerCase() !== mandateAddress().toLowerCase() ||
+          log.topics[0] !== iface.getEvent('MandateCreated').topicHash) continue;
+        const parsed = iface.parseLog(log);
+        if (parsed && parsed.name === 'MandateCreated') return parsed.args.mandateId.toString();
+      }
+      throw new Error('Mandate created event not found in receipt.');
+    },
+    revokeMandate: async function (profile, id) {
+      const data = new ethers.Interface(mandateAbi).encodeFunctionData('revokeMandate', [mandateId(id)]);
+      const tx = await submit(profile, mandateAddress(), data);
+      return { txHash: tx.hash };
+    },
+    setMandateApproval: async function (profile, artwork, approved) {
+      validArtworkAddress(artwork);
+      const data = new ethers.Interface(artworkAbi).encodeFunctionData('approve', [approved ? mandateAddress() : ethers.ZeroAddress, 1]);
+      const tx = await submit(profile, artwork, data);
+      return { txHash: tx.hash };
+    },
+    executeMandate: async function (profile, id, artwork) {
+      validArtworkAddress(artwork);
+      const data = new ethers.Interface(mandateAbi).encodeFunctionData('executeTransfer', [mandateId(id), artwork]);
+      const tx = await submit(profile, mandateAddress(), data);
+      return { txHash: tx.hash };
+    },
     registerCollector: async function (profile, displayName, metadataURI) {
       const registry = await collectorContract();
       const data = registry.interface.encodeFunctionData(

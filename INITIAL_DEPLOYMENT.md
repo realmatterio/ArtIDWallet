@@ -4,7 +4,7 @@
 
 ```text
 GitHub Pages
-  resale.html, CSS, browser JavaScript, ethers.js CDN
+  human-wallet.html, agent-wallet.html, CSS, browser JavaScript, ethers.js CDN
         ├── qBESU JSON-RPC reads and broadcasts
         │     └── Existing besupost Firebase proxy
         └── ICCHSM wallet address and signing requests
@@ -103,9 +103,9 @@ deliberately not configured because those immutable contracts have no listing
 functions. The app starts with a fresh v2 registry and does not include the
 legacy v1 records.
 
-The client loads ethers.js from a pinned public CDN. The GitHub Pages workflow
-publishes an explicit static-file allowlist and serves `resale.html` as both
-`index.html` and `resale.html`.
+The client loads ethers.js from a pinned public CDN. When using the parent
+repository's GitHub Pages workflow, publish both wallet pages and their assets;
+`index.html` redirects to `human-wallet.html`.
 
 ## B. Compile, test, and deploy v2 contracts
 
@@ -257,7 +257,8 @@ omitted from the v2 app.
 1. Enable GitHub Pages and configure its deployment environment if required.
    Publish the project root (or ensure the published artifact includes the
    root `index.html` and app assets). The root `index.html` redirects visitors
-   to `resale.html` automatically.
+   to `human-wallet.html` automatically. The mode switch opens
+   `agent-wallet.html`.
 2. Review `.github/workflows/artidwallet-pages.yml`; it publishes static
    assets only and does not deploy Firebase Functions.
 3. Open the site over HTTPS. The public registry loads automatically from

@@ -30,7 +30,7 @@ bytes.
    deployment transaction hashes, qBESU endpoint, and known demo wallet
    addresses. Do not switch the browser client to immutable v1 contracts;
    they do not support listing controls.
-2. Open `resale.html` or its GitHub Pages site. The public registry loads
+2. Open `human-wallet.html` or its GitHub Pages site. The public registry loads
    from qBESU on page load and can be refreshed without unlocking a wallet.
    Unlock Artist Alice and Collector Bob separately only for wallet actions.
    `4321` is a placeholder hint only and is not submitted automatically.
@@ -54,10 +54,72 @@ records display the stored creator and content hash, but the current artwork
 contract has no description or artwork metadata-URI field; refreshing cannot
 populate those fields unless the contract schema or application is extended.
 
+Registry history is read from the configured deployment blocks in 500-block
+ranges, with at most eight log queries in flight across the client. Results are
+assembled in block-range order. History is scanned again on refresh, so loading
+time and the number of queries grow as the chain and artwork catalog grow.
+An RPC query failure fails the refresh rather than displaying incomplete history.
+Run the browser-client range and concurrency regression tests with
+`node --test tests/artid-chain-logs.test.cjs` from the project root.
+
 The static browser app uses the configured existing qBESU and ICCHSM proxy
 functions; it does not run a local ArtID server. Use disposable demo wallets
 only. PIN handling and proxy security are demo-only and are not production
 authentication.
+
+The wallets can create and use on-chain transfer mandates as described below.
+No AP2 integration is implemented. Agent transactions still require human
+approval. The wallets do not perform KYC or AML verification.
+
+## Transfer mandate contract
+
+`ArtIDTransferMandates` is a separate contract deployed on qBESU. Each mandate fixes
+one recipient, up to 100 explicitly listed artwork contract addresses, an expiry
+timestamp, and a maximum number of transfers. It transfers token ID `1` only,
+matching the existing `ArtIDArtwork` contracts. The principal must own each
+token and separately approve the mandate contract on that token. The artwork
+contract still enforces the registered/listed collector and artwork rules.
+Mandates may be revoked; failed transfers do not consume the limit. Revoking a
+mandate does not revoke ERC-721 approvals: owners should revoke unused approvals
+on the artwork contracts separately.
+
+The current human and agent share the same ICCHSM key. Only the principal's
+address can call `executeTransfer`; the contract cannot distinguish an agent
+from the human or prevent direct transfers outside the mandate contract.
+Independent mandates can each have their own limits, so the limits are not
+aggregate spending or transfer caps. The contract does not authenticate
+artwork addresses against the factory: the principal must check each address
+before approving it. It does not enforce payment, price, AP2 messages, KYC, AML,
+or a unique agent identity. It has not been independently audited.
+
+In the Human Wallet, unlock the principal, enter a recipient, owned artwork
+addresses, expiry and transfer limit, and select **Authorize Agentic Work**.
+Keep the resulting mandate ID: the wallets do not enumerate mandates. Inspect
+the mandate using that ID and each artwork address, then separately approve each
+artwork's token #1. Token approval replaces any existing token-specific approval.
+The principal can revoke a mandate and separately revoke each token approval;
+revoking a token-specific approval does not revoke operator-wide approvals.
+
+In the Agent Wallet, unlock the same principal, enter the mandate ID and artwork
+address on Wallet Mandate, inspect the on-chain details, and select **Execute
+mandated transfer**. The user must confirm the displayed transfer before signing.
+WebMCP also offers `inspect_mandate` and `execute_mandated_transfer`; the latter
+requires the same on-screen confirmation. The existing direct resale action is
+separate and does not use or enforce a mandate. Simulated price and payment are
+informational only.
+
+For a future deployment, securely configure the existing Hardhat qBESU environment
+with `QBESU_RPC_URL` (or `BESU_RPC_URL`) and the existing deployer's key in
+`DEPLOYER_PRIVATE_KEY`; never put keys in tracked files. Run
+`npx hardhat run scripts/deploy-mandates.js --network qbesu` only after review
+and explicit deployment approval. The script checks chain ID `1337` and requires
+the configured signer address to match the recorded registry deployer
+`0xecc51175adaf8852b0494c53fc8c29cbfcaf7d0d`. A matching chain ID does not
+authenticate the RPC endpoint; independently verify the endpoint and signer.
+The deployment uses the Hardhat key-based signer, not the ICCHSM signing proxy.
+Record the confirmed contract address, block, and transaction and update the
+configured UI address if deploying again. This script deploys only the mandate contract; it does not redeploy the
+collector registry or artwork factory.
 
 ## Contract function reference
 

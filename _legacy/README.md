@@ -1,7 +1,7 @@
 # Legacy
 
 Earlier work, kept for reference. The demo the project is being reviewed on is
-`resale.html` in the repository root.
+`human-wallet.html` in the repository root.
 
 | File | What it is |
 |---|---|
