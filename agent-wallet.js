@@ -84,7 +84,7 @@
     const match = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/([^/]+)\/(.+)$/i.exec(uri || '');
     return match
       ? 'https://raw.githubusercontent.com/' + match[1] + '/' + match[2] + '/' + match[3] + '/' + match[4]
-      : uri;
+      : ArtworkDrafts.localUrl(uri);
   }
 
   function artImage(p, className) {
@@ -517,6 +517,9 @@
     $('sideHeading').textContent = artist ? 'Sell' : 'Buy';
     $('sideHint').textContent = artist ? 'Set a price, then share the payment code.' : 'Load the seller’s payment code.';
     $('createSection').hidden = !artist;
+    $('primaryActionLabel').textContent = artist ? 'Sell' : 'Buy';
+    $('registerAction').hidden = !artist;
+    if (drafts) drafts.refresh();
     $('createArtworkBtn').disabled = Boolean(state.busy);
     $('createArtworkBtn').textContent = state.busy === 'Artwork registration' ? 'Registering…' : 'Register artwork';
     renderCollection();
@@ -1140,10 +1143,26 @@
     try {
       registerArtwork(input).then(() => {
         Object.values(fields).forEach(id => { $(id).value = ''; });
+        if (drafts) drafts.clearPick();
+        if (window.WalletUI) WalletUI.syncPreview();
       }).catch(() => {});
     } catch (error) {
       showChainStatus(error.message, 'error');
     }
+  }
+
+  /* Studio drafts fill the form only; the person still presses Register,
+     which goes through the usual signing approval. */
+  let drafts = null;
+
+  function fillFromDraft(draft, metadata) {
+    $('artworkTitleInput').value = metadata.title;
+    $('artworkArtistInput').value = metadata.artist;
+    $('artworkIdInput').value = metadata.artworkId;
+    $('artworkImageInput').value = metadata.imageURI;
+    $('artworkHashInput').value = metadata.contentHash;
+    $('artworkTitleInput').setCustomValidity('');
+    if (window.WalletUI) WalletUI.syncPreview();
   }
 
   /* ---------------- registry page ---------------- */
@@ -1996,6 +2015,7 @@
     $('refreshChainBtn').addEventListener('click', () => refreshRegistry().catch(() => {}));
     $('hideUnlistedToggle').addEventListener('click', () => setHideUnlisted(!state.hideUnlisted));
     $('createArtworkBtn').addEventListener('click', registerArtworkFromForm);
+    drafts = ArtworkDrafts.mount($('artworkDrafts'), { artworks: () => state.artworks, onPick: fillFromDraft });
     $('agentMandateRead').addEventListener('click', () => handleMandate('read'));
     $('agentMandateExecute').addEventListener('click', () => handleMandate('execute'));
     $('registerProfileBtn').addEventListener('click', () =>
