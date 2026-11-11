@@ -19,7 +19,7 @@
   <script src="artworks.js?v=9"></script>
   <script src="addrQrOverlay.js?v=9"></script>
   <script src="artid-config.js?v=5"></script>
-  <script src="artid-chain.js?v=6"></script>
+  <script src="artid-chain.js?v=7"></script>
   <script src="artwork-drafts.js?v=1"></script>
   <script src="wallet-ui.js?v=1" defer></script>
 </head>
@@ -77,6 +77,7 @@
   </header>
 
   <div id="chainStatus" class="rs-chain-status" role="status" aria-live="polite" hidden></div>
+  <p id="registrySyncStatus" class="rs-hint rs-shell" role="status" aria-live="polite">Registry loading from qBESU…</p>
 
   <main class="rs-shell" id="main">
 
@@ -530,6 +531,7 @@
     channel: 'chain',
     stage: 'idle',        // idle | scanned | paid | transferred
     ledger: [],
+    registryStatus: 'loading',
     hideUnlisted: true    // registry view preference, restored on load
   };
 
@@ -646,6 +648,10 @@
   }
 
   function markSynced(ok) {
+    state.registryStatus = ok ? 'ready' : 'error';
+    $('registrySyncStatus').textContent = ok
+      ? 'Registry in sync with qBESU.'
+      : 'Registry sync failed. Open the registry and select Refresh to retry.';
     const el = $('syncState');
     const dot = document.createElement('span');
     dot.className = 'rs-portal-status-icon' + (ok ? ' is-unlocked' : ' is-error');
@@ -661,9 +667,15 @@
     setPortalConnectionLabel(profile, 'Connecting to ICCHSMatter and qBESU…', false);
     try {
       await ArtIDChain.connect(profile, input.value);
+      const account = await ArtIDChain.wallet(profile);
       input.value = '';
-      await refreshChainState();
+      const record = state.collectors.find(item => item.address.toLowerCase() === account.address.toLowerCase());
+      state.accounts[profile] = Object.assign({}, record || {}, account);
+      ADDR[profile] = account.address;
+      $(profile + 'Eoa').textContent = shorten(account.address);
+      $(profile + 'Eoa').title = account.address;
       $('lockWalletBtn').hidden = false;
+      renderCollector(profile);
       updatePortalWallet(profile);
       showChainStatus(profileName(profile) + ' wallet unlocked and connected to qBESU.', 'success');
     } catch (error) {
@@ -720,7 +732,8 @@
   }
 
   function setWorkCount(profile, address, count) {
-    $(profile + 'WorkCount').textContent = !address ? '—' : count === 1 ? '1 artwork' : count + ' artworks';
+    $(profile + 'WorkCount').textContent = !address || state.registryStatus !== 'ready'
+      ? '—' : count === 1 ? '1 artwork' : count + ' artworks';
   }
 
   function renderCollection() {
@@ -729,7 +742,10 @@
     setWorkCount('alice', address, owned.length);
     const el = $('collection');
     if (!owned.length) {
-      el.innerHTML = emptyState(address ? 'No artworks in this wallet yet. Register one below to start your collection.' : 'Unlock the artist wallet to see its collection.');
+      el.innerHTML = emptyState(!address ? 'Unlock the artist wallet to see its collection.'
+        : state.registryStatus === 'loading' ? 'Loading the collection from qBESU…'
+        : state.registryStatus === 'error' ? 'Collection unavailable. Refresh the registry to retry.'
+        : 'No artworks in this wallet yet. Register one below to start your collection.');
       return;
     }
     el.innerHTML = '';
@@ -742,7 +758,10 @@
     setWorkCount('bob', address, owned.length);
     const el = $('bobFolder');
     if (!owned.length) {
-      el.innerHTML = emptyState(address ? 'No artworks yet. Works you buy will appear here once the transfer is confirmed.' : 'Unlock the collector wallet to see its collection.');
+      el.innerHTML = emptyState(!address ? 'Unlock the collector wallet to see its collection.'
+        : state.registryStatus === 'loading' ? 'Loading the collection from qBESU…'
+        : state.registryStatus === 'error' ? 'Collection unavailable. Refresh the registry to retry.'
+        : 'No artworks yet. Works you buy will appear here once the transfer is confirmed.');
       return;
     }
     el.innerHTML = '';
@@ -1164,7 +1183,7 @@
         renderBuyer();
         return;
       }
-      await refreshChainState();
+      await refreshChainState(true);
       const current = piece(state.scanned.art);
       if (!current || current.owner.toLowerCase() !== ADDR.bob.toLowerCase()) {
         throw new Error('The receipt succeeded but the ownership read did not show Collector Bob as owner.');
@@ -1221,7 +1240,8 @@
     $('statCollectors').textContent = state.collectors.length;
     $('statTransfers').textContent = state.ledger.length;
     if (!state.artworks.length) {
-      $('registryBody').innerHTML = emptyState('No artworks are registered yet.');
+      $('registryBody').innerHTML = emptyState(state.registryStatus === 'loading' ? 'Loading the registry from qBESU…'
+        : state.registryStatus === 'error' ? 'Registry unavailable. Select Refresh to retry.' : 'No artworks are registered yet.');
     } else if (!shown.length) {
       $('registryBody').innerHTML = emptyState((unlisted === 1 ? 'The only artwork is unlisted.' : 'All ' + unlisted + ' artworks are unlisted.') +
         ' Turn off <b>Hide unlisted</b> to see ' + (unlisted === 1 ? 'it.' : 'them.'));
@@ -1263,7 +1283,8 @@
     }
     const collectorBody = $('collectorRegistryBody');
     if (!state.collectors.length) {
-      collectorBody.innerHTML = emptyState('No collectors are registered yet.');
+      collectorBody.innerHTML = emptyState(state.registryStatus === 'loading' ? 'Loading collectors…'
+        : state.registryStatus === 'error' ? 'Collectors unavailable. Select Refresh to retry.' : 'No collectors are registered yet.');
     } else {
       collectorBody.innerHTML = state.collectors.map(collector => {
         const profile = profileForAddress(collector.address);
@@ -1332,7 +1353,10 @@
     const body = $('ledgerBody');
     $('transferCount').textContent = state.ledger.length || '';
     if (!state.ledger.length) {
-      body.innerHTML = `<li class="rs-timeline-empty">${emptyState('No transfers yet. Completed resales appear here.')}</li>`;
+      const message = state.registryStatus === 'loading' ? 'Loading transfer history…'
+        : state.registryStatus === 'error' ? 'Transfer history unavailable. Refresh the registry to retry.'
+        : 'No transfers yet. Completed resales appear here.';
+      body.innerHTML = `<li class="rs-timeline-empty">${emptyState(message)}</li>`;
       return;
     }
     body.innerHTML = state.ledger.map(r => {
@@ -1415,7 +1439,40 @@
     status.appendChild(close);
   }
 
-  async function refreshChainState() {
+  let registryRefresh = null;
+
+  function refreshChainState(force) {
+    if (registryRefresh && !force) return registryRefresh;
+    const previous = registryRefresh;
+    const refresh = previous ? previous.then(runRegistryRefresh, runRegistryRefresh) : runRegistryRefresh();
+    registryRefresh = refresh;
+    refresh.then(
+      () => { if (registryRefresh === refresh) registryRefresh = null; },
+      () => { if (registryRefresh === refresh) registryRefresh = null; }
+    );
+    return refresh;
+  }
+
+  async function runRegistryRefresh() {
+    state.registryStatus = 'loading';
+    $('registrySyncStatus').textContent = 'Registry loading from qBESU…';
+    renderDrafts();
+    if (state.view === 'alice') renderCollection();
+    if (state.view === 'bob') renderBobFolder();
+    if (state.view === 'registry') { renderRegistry(); renderLedger(); }
+    try {
+      await loadChainState();
+    } catch (error) {
+      markSynced(false);
+      renderDrafts();
+      if (state.view === 'alice') renderCollection();
+      if (state.view === 'bob') renderBobFolder();
+      if (state.view === 'registry') { renderRegistry(); renderLedger(); }
+      throw error;
+    }
+  }
+
+  async function loadChainState() {
     const [health, collectorResponse, artworkResponse, ledgerResponse] = await Promise.all([
       ArtIDChain.health(),
       ArtIDChain.collectors(),
@@ -1426,15 +1483,11 @@
       throw new Error('Connected network does not match the configured qBESU network.');
     }
     state.collectors = collectorResponse.collectors;
-    state.accounts = {};
     for (const profile of profiles) {
-      if (isConnected(profile)) {
-        const account = await ArtIDChain.wallet(profile);
+      const account = state.accounts[profile];
+      if (isConnected(profile) && account) {
         const record = state.collectors.find(item => item.address.toLowerCase() === account.address.toLowerCase());
-        state.accounts[profile] = Object.assign(account, record || {});
-        ADDR[profile] = account.address;
-      } else {
-        ADDR[profile] = '';
+        if (record) state.accounts[profile] = Object.assign({}, account, record);
       }
     }
     state.artworks = artworkResponse.artworks.map((art, index) => Object.assign({}, art, {
@@ -1481,7 +1534,7 @@
     try {
       await refreshChainState();
       showChainStatus('Public registry data loaded from qBESU.', 'success');
-      if (returnToPortalOnSuccess) showView('portal');
+      if (returnToPortalOnSuccess && state.view === 'registry' && !anyWalletConnected()) showView('portal');
     } catch (error) {
       markSynced(false);
       showChainStatus('Could not load public registry data: ' + error.message, 'error');
@@ -1516,9 +1569,9 @@
     $(profile + 'MetadataURI').disabled = account.registered && !account.listed;
     $(profile + 'MetadataEntry').hidden = !account.registered;
     // keep both ends of the DID readable on a phone; the full one is in the tooltip
-    did.innerHTML = account.registered
-      ? transactionLink(account.registrationTxHash, account.did.replace(/(0x[0-9a-f]{4})[0-9a-f]+([0-9a-f]{4})$/i, '$1…$2'))
-      : 'Not registered';
+    const shortDid = account.registered && account.did.replace(/(0x[0-9a-f]{4})[0-9a-f]+([0-9a-f]{4})$/i, '$1…$2');
+    did.innerHTML = !account.registered ? 'Not registered'
+      : account.registrationTxHash ? transactionLink(account.registrationTxHash, shortDid) : escapeHtml(shortDid);
     did.title = account.registered ? account.did : '';
     $(profile + 'ListingStatus').textContent = account.registered
       ? account.listed ? 'Listed' : 'Unlisted'
@@ -1578,7 +1631,7 @@
         showChainStatus('Collector registration submitted—waiting for a qBESU block.', 'pending', result.txHash);
       });
       if (receipt.status !== 'confirmed') throw new Error('Collector registration failed on qBESU.');
-      await refreshChainState();
+      await refreshChainState(true);
       showChainStatus('Collector registered: ' + state.accounts[profile].did, 'success', result.txHash);
     } catch (error) {
       showChainStatus(error.message, 'error');
@@ -1701,7 +1754,7 @@
         showChainStatus('Collector metadata update submitted—waiting for a qBESU block.', 'pending', result.txHash);
       });
       if (receipt.status !== 'confirmed') throw new Error('Collector metadata update failed on qBESU.');
-      await refreshChainState();
+      await refreshChainState(true);
       showChainStatus('Collector metadata updated.', 'success', result.txHash);
     } catch (error) {
       showChainStatus(error.message, 'error');
@@ -1721,7 +1774,7 @@
         showChainStatus('Collector listing update submitted—waiting for a qBESU block.', 'pending', result.txHash);
       });
       if (receipt.status !== 'confirmed') throw new Error('Collector listing update failed on qBESU.');
-      await refreshChainState();
+      await refreshChainState(true);
       showChainStatus(profileName(profile) + (listed ? ' listed.' : ' unlisted.'), 'success', result.txHash);
     } catch (error) {
       showChainStatus(error.message, 'error');
@@ -1741,7 +1794,7 @@
         showChainStatus('Artwork listing update submitted—waiting for a qBESU block.', 'pending', result.txHash);
       });
       if (receipt.status !== 'confirmed') throw new Error('Artwork listing update failed on qBESU.');
-      await refreshChainState();
+      await refreshChainState(true);
       showChainStatus(artwork.title + (listed ? ' listed.' : ' unlisted.'), 'success', result.txHash);
     } catch (error) {
       showChainStatus(error.message, 'error');
@@ -1771,7 +1824,7 @@
     $('createArtworkBtn').disabled = true;
     try {
       const txHash = await submitArtwork($('creatorProfile').value, metadata, 'Artwork deployment');
-      await refreshChainState();
+      await refreshChainState(true);
       ['artworkIdInput', 'artworkTitleInput', 'artworkArtistInput', 'artworkImageInput', 'artworkHashInput']
         .forEach(id => { $(id).value = ''; });
       if (drafts) drafts.clearPick();
@@ -1780,12 +1833,13 @@
     } catch (error) {
       showChainStatus(error.message, 'error');
     } finally {
-      $('createArtworkBtn').disabled = false;
+      renderDrafts();
     }
   }
 
   /** Sign and confirm one artwork record; resolves to the transaction hash. */
   async function submitArtwork(profile, metadata, label) {
+    if (state.registryStatus !== 'ready') throw new Error('Wait for the registry to sync before registering artwork.');
     const creator = state.accounts[profile];
     if (!isConnected(profile) || !creator || !creator.registered || !creator.listed) {
       throw new Error('Unlock a registered, listed collector wallet to create artwork data.');
@@ -1806,6 +1860,10 @@
 
   function renderDrafts() {
     if (drafts) drafts.refresh();
+    $('artworkDrafts').hidden = state.registryStatus !== 'ready';
+    const account = state.accounts.alice;
+    $('createArtworkBtn').disabled = state.registryStatus !== 'ready' ||
+      !account || !account.registered || !account.listed || draftsBusy;
     // renderCollector re-enables every control in the wallet; the picker keeps its own state
     if (draftsBusy) $('artworkDrafts').querySelectorAll('button').forEach(button => { button.disabled = true; });
   }
@@ -1845,7 +1903,9 @@
       showChainStatus((done ? 'Registered ' + done + ' of ' + todo.length + ', then: ' : '') + error.message, 'error', lastTx);
     } finally {
       draftsBusy = false;
-      await refreshChainState().catch(() => {});
+      await refreshChainState(true).catch(error => {
+        showChainStatus('Registry refresh failed: ' + error.message, 'error');
+      });
       renderDrafts();
     }
   }

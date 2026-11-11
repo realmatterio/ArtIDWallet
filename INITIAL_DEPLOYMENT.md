@@ -22,6 +22,13 @@ serves the UI without `node_modules`. Each wallet has its own PIN form and
 in-memory PIN session. The `4321` placeholder is a hint only; the app does not
 prefill or persist the PIN.
 
+Unlocking reads the wallet's collector record without waiting for the public
+registry scan. Each page reuses its startup registry data during login; the
+registry continues loading in the background. Collection and history data are
+available after synchronization, and a failed sync can be retried from the
+registry. Switching between human and agent modes reloads the page and starts a
+new registry scan.
+
 The existing resale `pay()` simulation remains browser-only and sends no
 payment transaction. The current owner signs an ERC-721 ID Token transfer, and
 the UI reports completion only after qBESU confirms the transaction and the

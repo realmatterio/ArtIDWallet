@@ -19,9 +19,9 @@
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.5/dist/ethers.umd.min.js"></script>
   <script src="addrQrOverlay.js?v=9"></script>
   <script src="artid-config.js?v=5"></script>
-  <script src="artid-chain.js?v=6"></script>
+  <script src="artid-chain.js?v=7"></script>
   <script src="artwork-drafts.js?v=1"></script>
-  <script src="agent-wallet.js?v=7" defer></script>
+  <script src="agent-wallet.js?v=8" defer></script>
   <script src="wallet-ui.js?v=1" defer></script>
 </head>
 <body class="wm">
@@ -66,6 +66,7 @@
   </header>
 
   <div id="chainStatus" class="rs-chain-status" role="status" aria-live="polite" hidden></div>
+  <p id="registrySyncStatus" class="rs-hint rs-shell" role="status" aria-live="polite">Registry loading from qBESU…</p>
 
   <main class="rs-shell" id="main">
 

@@ -4,6 +4,7 @@
   const config = global.ARTID_CONFIG || {};
   const ethers = global.ethers;
   const sessionPins = {};
+  const sessionAddresses = {};
   const maxConcurrentLogRequests = 8;
   const logRequestQueue = [];
   let activeLogRequests = 0;
@@ -433,28 +434,37 @@
       if (!String(pin || '').trim()) throw new Error('Enter the ICCHSM wallet PIN.');
       if (!config.slots || !config.slots[profile]) throw new Error('No ICCHSM slot is configured for this wallet.');
       sessionPins[profile] = String(pin);
+      delete sessionAddresses[profile];
       try {
         const [address, network] = await Promise.all([getAddress(profile), getProvider().getNetwork()]);
         if (Number(network.chainId) !== Number(config.chainId)) {
           throw new Error('Connected qBESU network does not match configured chain ID.');
         }
+        sessionAddresses[profile] = address;
         return { profile: profile, address: address, chainId: Number(network.chainId) };
       } catch (error) {
         delete sessionPins[profile];
+        delete sessionAddresses[profile];
         throw error;
       }
     },
     lock: function (profile) {
-      if (profile) delete sessionPins[profile];
-      else Object.keys(sessionPins).forEach(key => delete sessionPins[key]);
+      if (profile) {
+        delete sessionPins[profile];
+        delete sessionAddresses[profile];
+      } else {
+        Object.keys(sessionPins).forEach(key => delete sessionPins[key]);
+        Object.keys(sessionAddresses).forEach(key => delete sessionAddresses[key]);
+      }
     },
-    isConnected: function (profile) { return Boolean(sessionPins[profile]); },
+    isConnected: function (profile) { return Boolean(sessionPins[profile] && sessionAddresses[profile]); },
     health: async function () {
       const network = await getProvider().getNetwork();
       return { chainId: Number(network.chainId) };
     },
     wallet: async function (profile) {
-      const address = await getAddress(profile);
+      requirePin(profile);
+      const address = sessionAddresses[profile] || await getAddress(profile);
       const registry = await collectorContract();
       const record = await registry.getCollector(address);
       return {

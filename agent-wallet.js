@@ -38,6 +38,7 @@
     artworks: [],
     ledger: [],
     synced: false,
+    registryStatus: 'loading',
     busy: null,           // label of the transaction being confirmed
     // seller
     selected: null,
@@ -185,6 +186,11 @@
   }
 
   function markSynced(ok) {
+    state.synced = ok;
+    state.registryStatus = ok ? 'ready' : 'error';
+    $('registrySyncStatus').textContent = ok
+      ? 'Registry in sync with qBESU.'
+      : 'Registry sync failed. Open the registry and select Refresh to retry.';
     const el = $('syncState');
     const dot = document.createElement('span');
     dot.className = 'rs-portal-status-icon' + (ok ? ' is-unlocked' : ' is-error');
@@ -274,10 +280,12 @@
     $('loginBtn').textContent = 'Unlocking…';
     try {
       const session = await ArtIDChain.connect(profile, pin);
+      const account = await ArtIDChain.wallet(profile);
       state.user = profile;
       state.known[profile] = session.address;
       state.role = null;
-      await refreshChainState();
+      const record = state.collectors.find(item => sameAddress(item.address, account.address));
+      state.account = Object.assign({}, record || {}, account);
       $('pinInput').value = '';
       go('role');
       showChainStatus(PEOPLE[profile].name + ' unlocked and connected to qBESU.', 'success');
@@ -321,7 +329,35 @@
 
   /* ---------------- chain state ---------------- */
 
-  async function refreshChainState() {
+  let registryRefresh = null;
+
+  function refreshChainState(force) {
+    if (registryRefresh && !force) return registryRefresh;
+    const previous = registryRefresh;
+    const refresh = previous ? previous.then(runRegistryRefresh, runRegistryRefresh) : runRegistryRefresh();
+    registryRefresh = refresh;
+    refresh.then(
+      () => { if (registryRefresh === refresh) registryRefresh = null; },
+      () => { if (registryRefresh === refresh) registryRefresh = null; }
+    );
+    return refresh;
+  }
+
+  async function runRegistryRefresh() {
+    state.synced = false;
+    state.registryStatus = 'loading';
+    $('registrySyncStatus').textContent = 'Registry loading from qBESU…';
+    renderPage();
+    try {
+      await loadChainState();
+    } catch (error) {
+      markSynced(false);
+      renderPage();
+      throw error;
+    }
+  }
+
+  async function loadChainState() {
     const [health, collectorResponse, artworkResponse, ledgerResponse] = await Promise.all([
       ArtIDChain.health(),
       ArtIDChain.collectors(),
@@ -332,12 +368,9 @@
       throw new Error('Connected network does not match the configured qBESU network.');
     }
     state.collectors = collectorResponse.collectors;
-    state.account = null;
-    if (state.user && isConnected(state.user)) {
-      const account = await ArtIDChain.wallet(state.user);
-      const record = state.collectors.find(item => sameAddress(item.address, account.address));
-      state.account = Object.assign(account, record || {});
-      state.known[state.user] = account.address;
+    if (state.user && isConnected(state.user) && state.account) {
+      const record = state.collectors.find(item => sameAddress(item.address, state.account.address));
+      if (record) state.account = Object.assign({}, state.account, record);
     }
     state.artworks = artworkResponse.artworks.map(art => Object.assign({}, art, {
       id: art.artworkId,
@@ -363,7 +396,6 @@
       state.selected = current && current.listed && state.account && sameAddress(current.owner, state.account.address)
         ? current : null;
     }
-    state.synced = true;
     markSynced(true);
     renderPage();
   }
@@ -377,6 +409,7 @@
       showChainStatus('Registry data loaded from qBESU.', 'success');
     } catch (error) {
       markSynced(false);
+      renderPage();
       showChainStatus('Could not load registry data: ' + error.message, 'error');
       throw error;
     } finally {
@@ -398,7 +431,7 @@
       const receipt = await ArtIDChain.waitForReceipt(txHash);
       if (receipt.status !== 'confirmed') throw new Error(label + ' failed on qBESU.');
       confirmed = true;
-      await refreshChainState();
+      await refreshChainState(true);
       showChainStatus(label + ' confirmed on qBESU.', 'success', txHash);
       return { txHash: txHash, blockNumber: receipt.blockNumber };
     } catch (error) {
@@ -512,7 +545,7 @@
     $('walletEoa').textContent = account ? shorten(account.address) : '—';
     $('walletEoa').title = account ? account.address : '';
     const count = ownedArtworks().length;
-    $('walletWorkCount').textContent = !account ? '—' : count === 1 ? '1 artwork' : count + ' artworks';
+    $('walletWorkCount').textContent = !account || !state.synced ? '—' : count === 1 ? '1 artwork' : count + ' artworks';
     $('collectionHint').textContent = artist ? 'Works in this wallet. Select one to sell.' : 'Works in this wallet.';
     $('sideHeading').textContent = artist ? 'Sell' : 'Buy';
     $('sideHint').textContent = artist ? 'Set a price, then share the payment code.' : 'Load the seller’s payment code.';
@@ -520,7 +553,8 @@
     $('primaryActionLabel').textContent = artist ? 'Sell' : 'Buy';
     $('registerAction').hidden = !artist;
     if (drafts) drafts.refresh();
-    $('createArtworkBtn').disabled = Boolean(state.busy);
+    $('artworkDrafts').hidden = !state.synced;
+    $('createArtworkBtn').disabled = Boolean(state.busy) || !state.synced;
     $('createArtworkBtn').textContent = state.busy === 'Artwork registration' ? 'Registering…' : 'Register artwork';
     renderCollection();
     if (artist) renderSeller(); else renderBuyer();
@@ -613,7 +647,9 @@
     const owned = ownedArtworks();
     const el = $('collection');
     if (!owned.length) {
-      el.innerHTML = emptyState(state.role === 'artist'
+      el.innerHTML = emptyState(state.registryStatus === 'loading' ? 'Loading the collection from qBESU…'
+        : state.registryStatus === 'error' ? 'Collection unavailable. Refresh the registry to retry.'
+        : state.role === 'artist'
         ? 'No artworks in this wallet yet. Register one below to start your collection.'
         : 'No artworks yet. Works you buy appear here once the transfer is confirmed.');
       return;
@@ -914,7 +950,7 @@
       showChainStatus('ID token transfer submitted. Waiting for a qBESU block, which may take about a minute.', 'pending', state.txHash);
       const receipt = await ArtIDChain.waitForReceipt(state.txHash);
       if (receipt.status !== 'confirmed') throw new Error('qBESU returned a failed transaction receipt.');
-      await refreshChainState();
+      await refreshChainState(true);
       // trust the owner read back from the chain, not just the receipt
       const current = piece(state.scanned.art);
       if (!current || !sameAddress(current.owner, account.address)) {
@@ -1112,6 +1148,7 @@
   function registerArtwork(input) {
     requireActiveProfile();
     if (state.role !== 'artist') throw new Error('Switch to the artist role to register artworks.');
+    if (!state.synced) throw new Error('Wait for the registry to sync before registering artwork.');
     const metadata = {
       title: String(input.title || '').trim(),
       artist: String(input.artist || '').trim(),
@@ -1192,7 +1229,8 @@
     const mine = state.account && state.account.registered && state.account.listed ? state.account.address : null;
 
     if (!state.artworks.length) {
-      $('registryBody').innerHTML = emptyState(state.synced ? 'No artworks are registered yet.' : 'Loading the registry from qBESU…');
+      $('registryBody').innerHTML = emptyState(state.registryStatus === 'loading' ? 'Loading the registry from qBESU…'
+        : state.registryStatus === 'error' ? 'Registry unavailable. Select Refresh to retry.' : 'No artworks are registered yet.');
     } else if (!shown.length) {
       $('registryBody').innerHTML = emptyState((unlisted === 1 ? 'The only artwork is unlisted.' : 'All ' + unlisted + ' artworks are unlisted.') +
         ' Turn off <b>Hide unlisted</b> to see ' + (unlisted === 1 ? 'it.' : 'them.'));
@@ -1233,7 +1271,8 @@
 
     const collectorBody = $('collectorRegistryBody');
     if (!state.collectors.length) {
-      collectorBody.innerHTML = emptyState(state.synced ? 'No collectors are registered yet.' : 'Loading collectors…');
+      collectorBody.innerHTML = emptyState(state.registryStatus === 'loading' ? 'Loading collectors…'
+        : state.registryStatus === 'error' ? 'Collectors unavailable. Select Refresh to retry.' : 'No collectors are registered yet.');
     } else {
       collectorBody.innerHTML = state.collectors.map(collector => {
         const region = regionForAddress(collector.address);
@@ -1284,7 +1323,10 @@
     const body = $('ledgerBody');
     $('transferCount').textContent = state.ledger.length || '';
     if (!state.ledger.length) {
-      body.innerHTML = `<li class="rs-timeline-empty">${emptyState('No transfers yet. Completed resales appear here.')}</li>`;
+      const message = state.registryStatus === 'loading' ? 'Loading transfer history…'
+        : state.registryStatus === 'error' ? 'Transfer history unavailable. Refresh the registry to retry.'
+        : 'No transfers yet. Completed resales appear here.';
+      body.innerHTML = `<li class="rs-timeline-empty">${emptyState(message)}</li>`;
       return;
     }
     body.innerHTML = state.ledger.map(r => {
@@ -2058,6 +2100,7 @@
     refreshChainState().catch(error => {
       markSynced(false);
       console.error('Registry preload failed:', error);
+      renderPage();
     });
   });
 })();
