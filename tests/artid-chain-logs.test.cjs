@@ -185,3 +185,38 @@ test('artwork listing chooses the newest event despite out-of-order responses', 
   assert.equal(artworks[0].creationTxHash, 'created');
   assert.equal(artworks[0].listingTxHash, 'newer-listing');
 });
+
+test('current registry state is read without scanning historical logs', async () => {
+  const provider = {
+    async getLogs() { throw new Error('Current state must not scan logs'); },
+  };
+  const ethers = {
+    Contract: function (address) {
+      if (address === 'factory') return {
+        artworkCount: async () => 1,
+        artworkAt: async () => 'artwork',
+      };
+      if (address === 'collector') return {
+        collectorCount: async () => 1,
+        collectorAt: async () => 'alice',
+        getCollector: async () => ({ did: 'collector-did', displayName: 'Alice', metadataURI: 'profile', registered: true, listed: true }),
+      };
+      return {
+        metadata: async () => ({ artworkId: 'id', title: 'Title', artist: 'Artist', imageURI: 'image', contentHash: 'hash', creator: 'alice' }),
+        artworkDid: async () => 'artwork-did',
+        ownerOf: async () => 'alice',
+        isListed: async () => true,
+      };
+    },
+  };
+  const window = loadClient(provider, ethers);
+  window.ARTID_CONFIG.collectorRegistryAddress = 'collector';
+  const [collectors, artworks] = await Promise.all([
+    window.ArtIDChain.currentCollectors(),
+    window.ArtIDChain.currentArtworks(),
+  ]);
+  assert.equal(collectors.collectors[0].metadataURI, 'profile');
+  assert.equal(collectors.collectors[0].metadataHistory.length, 0);
+  assert.equal(artworks.artworks[0].owner, 'alice');
+  assert.equal(artworks.artworks[0].creationTxHash, null);
+});

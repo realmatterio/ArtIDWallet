@@ -39,6 +39,7 @@
     ledger: [],
     synced: false,
     registryStatus: 'loading',
+    historyStatus: 'loading',
     busy: null,           // label of the transaction being confirmed
     // seller
     selected: null,
@@ -330,6 +331,8 @@
   /* ---------------- chain state ---------------- */
 
   let registryRefresh = null;
+  let historyRefresh = Promise.resolve();
+  let historyGeneration = 0;
 
   function refreshChainState(force) {
     if (registryRefresh && !force) return registryRefresh;
@@ -344,13 +347,18 @@
   }
 
   async function runRegistryRefresh() {
+    const generation = ++historyGeneration;
     state.synced = false;
     state.registryStatus = 'loading';
+    state.historyStatus = 'loading';
+    state.ledger = [];
     $('registrySyncStatus').textContent = 'Registry loading from qBESU…';
     renderPage();
     try {
       await loadChainState();
+      queueHistoryRefresh(generation);
     } catch (error) {
+      state.historyStatus = 'error';
       markSynced(false);
       renderPage();
       throw error;
@@ -358,11 +366,10 @@
   }
 
   async function loadChainState() {
-    const [health, collectorResponse, artworkResponse, ledgerResponse] = await Promise.all([
+    const [health, collectorResponse, artworkResponse] = await Promise.all([
       ArtIDChain.health(),
-      ArtIDChain.collectors(),
-      ArtIDChain.artworks(),
-      ArtIDChain.ledger()
+      ArtIDChain.currentCollectors(),
+      ArtIDChain.currentArtworks()
     ]);
     if (health.chainId !== Number(ARTID_CONFIG.chainId)) {
       throw new Error('Connected network does not match the configured qBESU network.');
@@ -376,16 +383,6 @@
       id: art.artworkId,
       erc721: art.address
     }));
-    state.ledger = ledgerResponse.transfers;
-    const latestTransfer = new Map();
-    state.ledger.forEach(transfer => {
-      if (!latestTransfer.has(transfer.artwork.toLowerCase())) {
-        latestTransfer.set(transfer.artwork.toLowerCase(), transfer.transactionHash);
-      }
-    });
-    state.artworks.forEach(artwork => {
-      artwork.transferTxHash = latestTransfer.get(artwork.erc721.toLowerCase()) || null;
-    });
     // a listing only stands while its seller still owns the listed work
     for (const [address, listing] of state.listings) {
       const art = piece(listing.art);
@@ -397,7 +394,38 @@
         ? current : null;
     }
     markSynced(true);
+    $('registrySyncStatus').textContent = 'Registry in sync with qBESU. Loading history and transaction links…';
     renderPage();
+  }
+
+  function queueHistoryRefresh(generation) {
+    historyRefresh = historyRefresh.then(async () => {
+      if (generation !== historyGeneration) return;
+      try {
+        const history = await ArtIDChain.history();
+        if (generation !== historyGeneration) return;
+        ArtIDChain.applyHistory(state.collectors, state.artworks, history);
+        state.ledger = history.transfers;
+        if (state.user && state.account && isConnected(state.user)) {
+          const record = state.collectors.find(item => sameAddress(item.address, state.account.address));
+          if (record) state.account = Object.assign({}, state.account, record);
+        }
+        state.historyStatus = 'ready';
+        $('registrySyncStatus').textContent = 'Registry and history in sync with qBESU.';
+        if (state.page === 'wallet') {
+          renderCollection();
+          renderProfile(true);
+        } else {
+          renderPage();
+        }
+      } catch (error) {
+        if (generation !== historyGeneration) return;
+        state.historyStatus = 'error';
+        $('registrySyncStatus').textContent = 'Registry loaded, but history could not be loaded. Select Refresh to retry.';
+        console.error('Registry history failed:', error);
+        if (state.page === 'registry') { renderRegistry(); renderLedger(); }
+      }
+    });
   }
 
   async function refreshRegistry() {
@@ -561,7 +589,7 @@
     renderProfile();
   }
 
-  function renderProfile() {
+  function renderProfile(preserveInputs) {
     const account = state.account;
     if (!account) return;
     const busy = Boolean(state.busy);
@@ -574,8 +602,8 @@
       : escapeHtml(account.did);
     const name = $('displayNameInput');
     const uri = $('metadataInput');
-    if (document.activeElement !== name) name.value = account.displayName || PEOPLE[state.user].name;
-    if (document.activeElement !== uri) uri.value = account.metadataURI || '';
+    if (!preserveInputs && document.activeElement !== name) name.value = account.displayName || PEOPLE[state.user].name;
+    if (!preserveInputs && document.activeElement !== uri) uri.value = account.metadataURI || '';
     name.disabled = uri.disabled = account.registered && !account.listed;
     $('metadataEntry').hidden = !account.registered;
     $('saveProfileBtn').disabled = busy || !account.listed;
@@ -1295,7 +1323,7 @@
               <dl class="rs-kv rs-kv-compact">
                 <div><dt>Collector ID</dt><dd>${collector.registrationTxHash ? transactionLink(collector.registrationTxHash, collector.did) : escapeHtml(collector.did)}</dd></div>
                 <div><dt>Wallet address</dt><dd>${escapeHtml(collector.address)}</dd></div>
-                ${latest && latest.metadataURI ? `<div><dt>Profile metadata</dt><dd>${escapeHtml(latest.metadataURI)}</dd></div>` : ''}
+                ${collector.metadataURI ? `<div><dt>Profile metadata</dt><dd>${escapeHtml(collector.metadataURI)}</dd></div>` : ''}
                 <div><dt>Latest record</dt><dd>${transactionLink(collector.listingTxHash || (latest && latest.transactionHash) || collector.registrationTxHash)}</dd></div>
               </dl>
             </details>
@@ -1323,8 +1351,8 @@
     const body = $('ledgerBody');
     $('transferCount').textContent = state.ledger.length || '';
     if (!state.ledger.length) {
-      const message = state.registryStatus === 'loading' ? 'Loading transfer history…'
-        : state.registryStatus === 'error' ? 'Transfer history unavailable. Refresh the registry to retry.'
+      const message = state.historyStatus === 'loading' ? 'Loading transfer history…'
+        : state.historyStatus === 'error' ? 'Transfer history unavailable. Refresh the registry to retry.'
         : 'No transfers yet. Completed resales appear here.';
       body.innerHTML = `<li class="rs-timeline-empty">${emptyState(message)}</li>`;
       return;
@@ -1411,7 +1439,8 @@
       region: state.user ? PEOPLE[state.user].region.name : null,
       role: state.role,
       transactionPending: state.busy,
-      registrySynced: state.synced
+      registrySynced: state.synced,
+      historyStatus: state.historyStatus
     };
     if (a) {
       snapshot.wallet = {
@@ -1764,7 +1793,8 @@
           contentHash: p.contentHash || null,
           creationTx: p.creationTxHash || null,
           latestTransferTx: p.transferTxHash || null,
-          listingTx: p.listingTxHash || null
+          listingTx: p.listingTxHash || null,
+          historyStatus: state.historyStatus
         });
       }
     },
@@ -1790,6 +1820,7 @@
       readOnly: true,
       inputSchema: { type: 'object', properties: { limit: { type: 'number', minimum: 1, maximum: 100, description: 'Default 10.' } } },
       run: args => ({
+        historyStatus: state.historyStatus,
         transfers: state.ledger.slice(0, Math.round(args.limit || 10)).map(r => {
           const art = state.artworks.find(p => sameAddress(p.erc721, r.artwork));
           return { artwork: art ? art.title : r.artwork, from: ownerLabel(r.from), to: ownerLabel(r.to), time: r.time, tx: r.transactionHash };
@@ -1805,9 +1836,9 @@
     },
     {
       name: 'refresh_registry',
-      description: 'Reload artworks, collectors and transfers from qBESU.',
+      description: 'Reload current artworks and collectors from qBESU; history loads in the background.',
       pages: ['registry'],
-      run: () => refreshRegistry().then(() => ({ artworks: state.artworks.length, collectors: state.collectors.length, transfers: state.ledger.length }))
+      run: () => refreshRegistry().then(() => ({ artworks: state.artworks.length, collectors: state.collectors.length, historyStatus: state.historyStatus, transfers: state.historyStatus === 'ready' ? state.ledger.length : null }))
     },
     {
       name: 'set_artwork_listed',

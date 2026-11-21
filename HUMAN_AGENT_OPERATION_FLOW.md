@@ -8,6 +8,13 @@ collector and an agent, based on the
 how the current demo differs. The production controls described below are
 design goals, not features already established by the deployed contracts.
 
+In the current demo, both wallets first load the latest collector and artwork
+state from the deployed contracts. Ownership history, profile history and
+transaction links load separately in the background. The registry status
+reports when history is still loading or if it fails; use Refresh to retry.
+The agent tools also report `historyStatus` when returning history-dependent
+results. These reads do not submit transactions.
+
 ## 1. Participants
 
 | Participant | Responsibility |

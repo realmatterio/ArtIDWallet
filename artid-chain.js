@@ -192,6 +192,18 @@
     );
   }
 
+  async function mapWithLimit(items, limit, mapper) {
+    const results = new Array(items.length);
+    let next = 0;
+    await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
+      while (next < items.length) {
+        const index = next++;
+        results[index] = await mapper(items[index], index);
+      }
+    }));
+    return results;
+  }
+
   function configuredStartBlock(name) {
     if (config[name] === null || config[name] === undefined || config[name] === '') {
       throw new Error('Set ' + name + ' in artid-config.js after deploying the v2 contracts.');
@@ -236,12 +248,28 @@
     return logs;
   }
 
-  async function listCollectors() {
+  async function listCollectors(includeHistory = true) {
     const registry = await collectorContract();
     const count = Number(await registry.collectorCount());
     if (!Number.isSafeInteger(count) || count > 1000) {
       throw new Error('Collector directory exceeds the demo query limit.');
     }
+    const records = await mapWithLimit(Array.from({ length: count }), 10, async (_, index) => {
+      const address = await registry.collectorAt(index);
+      const record = await registry.getCollector(address);
+      return {
+        address: address,
+        did: record.did,
+        displayName: record.displayName,
+        metadataURI: record.metadataURI,
+        registered: record.registered,
+        listed: record.listed,
+        registrationTxHash: null,
+        metadataHistory: [],
+        listingTxHash: null,
+      };
+    });
+    if (!includeHistory) return records;
     const startBlock = configuredStartBlock('collectorRegistryDeploymentBlock');
     const latestBlock = await getProvider().getBlockNumber();
     const registeredTopic = registry.interface.getEvent('CollectorRegistered').topicHash;
@@ -283,22 +311,9 @@
       entry.listingTxHash = log.transactionHash;
       byAddress.set(address, entry);
     }
-    const records = [];
-    for (let index = 0; index < count; index += 1) {
-      const address = await registry.collectorAt(index);
-      const record = await registry.getCollector(address);
-      const history = byAddress.get(address.toLowerCase()) || { metadataHistory: [], registrationTxHash: null, listingTxHash: null };
-      records.push({
-        address: address,
-        did: record.did,
-        displayName: record.displayName,
-        metadataURI: record.metadataURI,
-        registered: record.registered,
-        listed: record.listed,
-        registrationTxHash: history.registrationTxHash,
-        metadataHistory: history.metadataHistory,
-        listingTxHash: history.listingTxHash,
-      });
+    for (const record of records) {
+      const history = byAddress.get(record.address.toLowerCase());
+      if (history) Object.assign(record, history);
     }
     return records;
   }
@@ -351,7 +366,7 @@
     }
   }
 
-  async function listArtworks() {
+  async function listArtworks(includeHistory = true) {
     const factory = new ethers.Contract(
       configuredAddress(config.factoryAddress, 'artwork factory'),
       factoryAbi,
@@ -361,13 +376,8 @@
     if (!Number.isSafeInteger(count) || count > 1000) {
       throw new Error('Artwork catalog exceeds the demo query limit.');
     }
-    const records = [];
-    const addresses = [];
-    for (let index = 0; index < count; index += 1) {
-      addresses.push(await factory.artworkAt(index));
-    }
-    const hashes = await artworkEventHashes(await factory.getAddress(), addresses);
-    for (const address of addresses) {
+    const addresses = await mapWithLimit(Array.from({ length: count }), 10, (_, index) => factory.artworkAt(index));
+    const records = await mapWithLimit(addresses, 10, async address => {
       const contract = new ethers.Contract(address, artworkAbi, getProvider());
       const [metadata, did, owner, listed] = await Promise.all([
         contract.metadata(),
@@ -375,8 +385,7 @@
         contract.ownerOf(1),
         contract.isListed(),
       ]);
-      const eventHashes = hashes.get(address.toLowerCase()) || {};
-      records.push({
+      return {
         address: address,
         tokenId: '1',
         artworkId: metadata.artworkId,
@@ -388,9 +397,15 @@
         did: did,
         owner: owner,
         listed: listed,
-        creationTxHash: eventHashes.creationTxHash,
-        listingTxHash: eventHashes.listingTxHash,
-      });
+        creationTxHash: null,
+        listingTxHash: null,
+      };
+    });
+    if (!includeHistory) return records;
+    const hashes = await artworkEventHashes(await factory.getAddress(), addresses);
+    for (const record of records) {
+      const eventHashes = hashes.get(record.address.toLowerCase());
+      if (eventHashes) Object.assign(record, eventHashes);
     }
     return records;
   }
@@ -427,6 +442,31 @@
       }
     }
     return transfers.reverse();
+  }
+
+  function applyHistory(collectors, artworks, history) {
+    const collectorHistory = new Map(history.collectors.map(item => [item.address.toLowerCase(), item]));
+    const artworkHistory = new Map(history.artworks.map(item => [item.address.toLowerCase(), item]));
+    const transfers = new Map();
+    history.transfers.forEach(item => {
+      if (!transfers.has(item.artwork.toLowerCase())) transfers.set(item.artwork.toLowerCase(), item.transactionHash);
+    });
+    collectors.forEach(item => {
+      const record = collectorHistory.get(item.address.toLowerCase());
+      if (record) Object.assign(item, {
+        metadataHistory: record.metadataHistory,
+        registrationTxHash: record.registrationTxHash,
+        listingTxHash: record.listingTxHash,
+      });
+    });
+    artworks.forEach(item => {
+      const record = artworkHistory.get(item.address.toLowerCase());
+      if (record) Object.assign(item, {
+        creationTxHash: record.creationTxHash,
+        listingTxHash: record.listingTxHash,
+      });
+      item.transferTxHash = transfers.get(item.address.toLowerCase()) || null;
+    });
   }
 
   global.ArtIDChain = {
@@ -479,7 +519,16 @@
     },
     collectors: async function () { return { collectors: await listCollectors() }; },
     artworks: async function () { return { artworks: await listArtworks() }; },
+    currentCollectors: async function () { return { collectors: await listCollectors(false) }; },
+    currentArtworks: async function () { return { artworks: await listArtworks(false) }; },
     ledger: async function () { return { transfers: await listTransfers() }; },
+    history: async function () {
+      const [collectors, artworks, transfers] = await Promise.all([
+        listCollectors(), listArtworks(), listTransfers(),
+      ]);
+      return { collectors: collectors, artworks: artworks, transfers: transfers };
+    },
+    applyHistory: applyHistory,
     getMandate: async function (id, artwork) {
       const contract = mandateContract();
       const number = mandateId(id);

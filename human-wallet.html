@@ -19,7 +19,7 @@
   <script src="artworks.js?v=9"></script>
   <script src="addrQrOverlay.js?v=9"></script>
   <script src="artid-config.js?v=5"></script>
-  <script src="artid-chain.js?v=7"></script>
+  <script src="artid-chain.js?v=8"></script>
   <script src="artwork-drafts.js?v=1"></script>
   <script src="wallet-ui.js?v=1" defer></script>
 </head>
@@ -532,6 +532,7 @@
     stage: 'idle',        // idle | scanned | paid | transferred
     ledger: [],
     registryStatus: 'loading',
+    historyStatus: 'loading',
     hideUnlisted: true    // registry view preference, restored on load
   };
 
@@ -1238,7 +1239,7 @@
     $('collectorCount').textContent = state.collectors.length || '';
     $('statArtworks').textContent = state.artworks.filter(p => p.listed).length;
     $('statCollectors').textContent = state.collectors.length;
-    $('statTransfers').textContent = state.ledger.length;
+    $('statTransfers').textContent = state.historyStatus === 'ready' ? state.ledger.length : '—';
     if (!state.artworks.length) {
       $('registryBody').innerHTML = emptyState(state.registryStatus === 'loading' ? 'Loading the registry from qBESU…'
         : state.registryStatus === 'error' ? 'Registry unavailable. Select Refresh to retry.' : 'No artworks are registered yet.');
@@ -1307,7 +1308,7 @@
               <dl class="rs-kv rs-kv-compact">
                 <div><dt>Collector ID</dt><dd>${collector.registrationTxHash ? transactionLink(collector.registrationTxHash, collector.did) : escapeHtml(collector.did)}</dd></div>
                 <div><dt>Wallet address</dt><dd>${escapeHtml(collector.address)}</dd></div>
-                ${latestMetadata && latestMetadata.metadataURI ? `<div><dt>Profile metadata</dt><dd>${escapeHtml(latestMetadata.metadataURI)}</dd></div>` : ''}
+                ${collector.metadataURI ? `<div><dt>Profile metadata</dt><dd>${escapeHtml(collector.metadataURI)}</dd></div>` : ''}
                 <div><dt>Latest record</dt><dd>${transactionLink(collector.listingTxHash || (latestMetadata && latestMetadata.transactionHash) || collector.registrationTxHash)}</dd></div>
               </dl>
             </details>
@@ -1353,8 +1354,8 @@
     const body = $('ledgerBody');
     $('transferCount').textContent = state.ledger.length || '';
     if (!state.ledger.length) {
-      const message = state.registryStatus === 'loading' ? 'Loading transfer history…'
-        : state.registryStatus === 'error' ? 'Transfer history unavailable. Refresh the registry to retry.'
+      const message = state.historyStatus === 'loading' ? 'Loading transfer history…'
+        : state.historyStatus === 'error' ? 'Transfer history unavailable. Refresh the registry to retry.'
         : 'No transfers yet. Completed resales appear here.';
       body.innerHTML = `<li class="rs-timeline-empty">${emptyState(message)}</li>`;
       return;
@@ -1440,6 +1441,8 @@
   }
 
   let registryRefresh = null;
+  let historyRefresh = Promise.resolve();
+  let historyGeneration = 0;
 
   function refreshChainState(force) {
     if (registryRefresh && !force) return registryRefresh;
@@ -1454,7 +1457,10 @@
   }
 
   async function runRegistryRefresh() {
+    const generation = ++historyGeneration;
     state.registryStatus = 'loading';
+    state.historyStatus = 'loading';
+    state.ledger = [];
     $('registrySyncStatus').textContent = 'Registry loading from qBESU…';
     renderDrafts();
     if (state.view === 'alice') renderCollection();
@@ -1462,7 +1468,9 @@
     if (state.view === 'registry') { renderRegistry(); renderLedger(); }
     try {
       await loadChainState();
+      queueHistoryRefresh(generation);
     } catch (error) {
+      state.historyStatus = 'error';
       markSynced(false);
       renderDrafts();
       if (state.view === 'alice') renderCollection();
@@ -1473,11 +1481,10 @@
   }
 
   async function loadChainState() {
-    const [health, collectorResponse, artworkResponse, ledgerResponse] = await Promise.all([
+    const [health, collectorResponse, artworkResponse] = await Promise.all([
       ArtIDChain.health(),
-      ArtIDChain.collectors(),
-      ArtIDChain.artworks(),
-      ArtIDChain.ledger()
+      ArtIDChain.currentCollectors(),
+      ArtIDChain.currentArtworks()
     ]);
     if (health.chainId !== Number(ARTID_CONFIG.chainId)) {
       throw new Error('Connected network does not match the configured qBESU network.');
@@ -1495,16 +1502,6 @@
       erc721: art.address,
       art: art.imageURI
     }));
-    state.ledger = ledgerResponse.transfers;
-    const latestTransferByArtwork = new Map();
-    state.ledger.forEach(transfer => {
-      if (!latestTransferByArtwork.has(transfer.artwork.toLowerCase())) {
-        latestTransferByArtwork.set(transfer.artwork.toLowerCase(), transfer.transactionHash);
-      }
-    });
-    state.artworks.forEach(artwork => {
-      artwork.transferTxHash = latestTransferByArtwork.get(artwork.erc721.toLowerCase()) || null;
-    });
     if (state.selected && !state.artworks.some(artwork =>
       artwork.id === state.selected.id && artwork.listed
     )) {
@@ -1518,13 +1515,45 @@
       $(profile + 'Eoa').title = account ? account.address : '';
     }
     markSynced(true);
-    renderCollector('alice');
-    renderCollector('bob');
+    $('registrySyncStatus').textContent = 'Registry in sync with qBESU. Loading history and transaction links…';
+    for (const profile of profiles) {
+      if (state.accounts[profile]) renderCollector(profile, true);
+    }
     updatePortalWallet('alice');
     updatePortalWallet('bob');
     if (state.view === 'alice') { renderCollection(); renderSellerListing(); }
     if (state.view === 'bob') { renderBobFolder(); renderBuyer(); }
     if (state.view === 'registry') { renderRegistry(); renderLedger(); }
+  }
+
+  function queueHistoryRefresh(generation) {
+    historyRefresh = historyRefresh.then(async () => {
+      if (generation !== historyGeneration) return;
+      try {
+        const history = await ArtIDChain.history();
+        if (generation !== historyGeneration) return;
+        ArtIDChain.applyHistory(state.collectors, state.artworks, history);
+        state.ledger = history.transfers;
+        for (const profile of profiles) {
+          const account = state.accounts[profile];
+          const record = account && state.collectors.find(item => item.address.toLowerCase() === account.address.toLowerCase());
+          if (record && isConnected(profile)) state.accounts[profile] = Object.assign({}, account, record);
+        }
+        state.historyStatus = 'ready';
+        $('registrySyncStatus').textContent = 'Registry and history in sync with qBESU.';
+        renderCollector('alice');
+        renderCollector('bob');
+        if (state.view === 'alice') renderCollection();
+        if (state.view === 'bob') renderBobFolder();
+        if (state.view === 'registry') { renderRegistry(); renderLedger(); }
+      } catch (error) {
+        if (generation !== historyGeneration) return;
+        state.historyStatus = 'error';
+        $('registrySyncStatus').textContent = 'Registry loaded, but history could not be loaded. Select Refresh to retry.';
+        console.error('Registry history failed:', error);
+        if (state.view === 'registry') { renderRegistry(); renderLedger(); }
+      }
+    });
   }
 
   async function refreshPublicRegistry(returnToPortalOnSuccess) {
@@ -1543,7 +1572,7 @@
     }
   }
 
-  function renderCollector(profile) {
+  function renderCollector(profile, preserveInputs) {
     const account = state.accounts[profile];
     const button = $(profile + 'Register');
     const saveButton = $(profile + 'SaveMetadata');
@@ -1563,9 +1592,9 @@
     button.textContent = state.collectorRegistering === profile ? 'Registering…' : 'Register collector';
     saveButton.hidden = !account.registered;
     saveButton.disabled = Boolean(state.collectorRegistering) || !account.listed;
-    $(profile + 'DisplayName').value = account.displayName || profileName(profile);
+    if (!preserveInputs) $(profile + 'DisplayName').value = account.displayName || profileName(profile);
     $(profile + 'DisplayName').disabled = account.registered && !account.listed;
-    $(profile + 'MetadataURI').value = account.metadataURI || '';
+    if (!preserveInputs) $(profile + 'MetadataURI').value = account.metadataURI || '';
     $(profile + 'MetadataURI').disabled = account.registered && !account.listed;
     $(profile + 'MetadataEntry').hidden = !account.registered;
     // keep both ends of the DID readable on a phone; the full one is in the tooltip
